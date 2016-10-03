@@ -66,7 +66,7 @@ stop:
 
 # Funcion ARM
 
-ARM_copy_10:
+ARM_sudoku_2016:
 
 		#  saves the working registers
         # Recordad que puede modificar r0, r1, r2 y r3 sin guardarlos previamente
@@ -77,13 +77,13 @@ ARM_copy_10:
 		MOV		r2, 0x1FF0		//Valor que estableceremos en celdas vacias
 		rowloop:
 
-			#Inicio bucle
-			LDM		r0, {r3-r12}	//Load de la primera fila de la cuadricula
+		#Inicio bucle
+		LDM		r0, {r3-r12}	//Load de la primera fila de la cuadricula
 
-			#Preparamos nueva iteracion
-			ADD		r1,r1,#1
-			CMP		r1,#9
-			BNE		rowloop
+		#Preparamos nueva iteracion
+		ADD		r1,r1,#1
+		CMP		r1,#9
+		BNE		rowloop
 
 
 
