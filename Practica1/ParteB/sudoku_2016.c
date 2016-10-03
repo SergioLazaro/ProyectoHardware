@@ -27,7 +27,7 @@ static inline void descartar_candidatos_fila(CELDA cuadricula[NUM_FILAS][NUM_COL
 	int i;	
 	//Iteramos sobre NUM_FILAS porque vale 9 pero iteramos sobre las columnas.
 	for(i=0; i<NUM_FILAS; i++){
-		cuadricula[fila][i] |= 0 << ((valor-1) + 4);
+		cuadricula[fila][i] &= 0 << ((valor-1) + 4);
 	}
 }
 
@@ -39,7 +39,7 @@ static inline void descartar_candidatos_columna(CELDA cuadricula[NUM_FILAS][NUM_
 	int i;	
 
 	for(i=0; i<NUM_FILAS; i++){
-		cuadricula[i][columna] |= 0 << ((valor-1) + 4);
+		cuadricula[i][columna] &= 0 << ((valor-1) + 4);
 	}
 }
 
@@ -54,7 +54,7 @@ static inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_C
 		
 	for(i=0; i<3; i++){
 		for(j=0; j<3; j++){
-			cuadricula[filai+i][colj+j] |= 0 << ((valor-1) + 4);
+			cuadricula[filai+i][colj+j] &= 0 << ((valor-1) + 4);
 		}
 	}
 }
