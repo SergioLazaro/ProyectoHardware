@@ -24,10 +24,10 @@ celda_leer_valor(CELDA celda)
 static inline void descartar_candidatos_fila(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
                              uint8_t fila, uint8_t valor)
 {
-	int i;	
+	int i;
 	//Iteramos sobre NUM_FILAS porque vale 9 pero iteramos sobre las columnas.
 	for(i=0; i<NUM_FILAS; i++){
-		cuadricula[fila][i] &= 0 << ((valor-1) + 4);
+		cuadricula[fila][i] &= ~(1 << ((valor-1) + 4));
 	}
 }
 
@@ -36,10 +36,10 @@ static inline void descartar_candidatos_fila(CELDA cuadricula[NUM_FILAS][NUM_COL
 static inline void descartar_candidatos_columna(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
                              uint8_t columna, uint8_t valor)
 {
-	int i;	
+	int i;
 
 	for(i=0; i<NUM_FILAS; i++){
-		cuadricula[i][columna] &= 0 << ((valor-1) + 4);
+		cuadricula[i][columna] &= ~(1 << ((valor-1) + 4));
 	}
 }
 
@@ -51,10 +51,10 @@ static inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_C
 	int i, j, filai, colj;
 	filai=3*(fila/3);	//Fila de inicio de la region
 	colj=3*(columna/3);	//Columna de inicio de la region
-		
+
 	for(i=0; i<3; i++){
 		for(j=0; j<3; j++){
-			cuadricula[filai+i][colj+j] &= 0 << ((valor-1) + 4);
+			cuadricula[filai+i][colj+j] &= ~(1 << ((valor-1) + 4));
 		}
 	}
 }
@@ -88,22 +88,33 @@ sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
     int celdas_vacias = 0;
 
     /* recorrer cuadricula celda a celda */
-	//Creacion de variables	
-	int i, j;
+	//Creacion de variables
+	int i, j, check;
+	//loop
 	for(i=0; i<NUM_FILAS; i++){
-		for(j=0; j<NUM_COLUMNAS; j++){
+		for(j=0; j<NUM_FILAS; j++){
 			//Si la celda no contiene un valor, ponemos todos los candidatos a 1
 			//para mas tarde eliminar los que ya no lo sean
-			if(cuadricula[i][j] & (0 << 15)){
+			//IMPORTANTE
+			// check puede valer 1 o 0. Hay que tener en cuenta que un 1 = true y
+			// un 0 = false.
+			// Miramos primer bit de celda:
+			//		Si es 1 (pista) -> (bit 15) AND 1 = 1 #true (no queremos entrar)
+			//		Si es 0 (vacia) -> (bit 15) AND 1 = 0 #false (queremos entrar)
+			//
+			// Negamos para entrar en el bucle
+
+			check = cuadricula[i][j] & (1 << 15);
+			if(!check){
 				/* inicializa lista de candidatos */
-				cuadricula[i][j]=cuadricula[i][j] bitor 0x1FF0;
+				cuadricula[i][j]=cuadricula[i][j] | 0x1FF0;
 			}
 		}
 	}
-        
+
 	/* recorrer cuadricula celda a celda */
 	for(i=0; i<NUM_FILAS; i++){
-		for(j=0; j<NUM_COLUMNAS; j++){
+		for(j=0; j<NUM_FILAS; j++){
         	/* si celda tiene valor */
 			if(cuadricula[i][j] & (1 << 15)){
         		/*    sudoku_candidatos_propagar_c(...); */
@@ -118,6 +129,7 @@ sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
     /* retorna el numero de celdas vacias */
     return (celdas_vacias);
 }
+
 
 /* *****************************************************************************
  * Funciones públicas
@@ -139,4 +151,3 @@ sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready)
 
     /* repetir para otras versiones (C optimizado, ARM, THUMB) */
 }
-
