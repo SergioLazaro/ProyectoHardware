@@ -42,9 +42,9 @@ Reset_Handler:
 # using the stack pointer
 # function __c_copy is in copy.c
         LDR     r0, =cuadricula  /*  puntero a la @ inicial de la cuadricula */
-
+		B		ARM_sudoku_2016
 .extern     sudoku9x9
-        ldr         r5, = sudoku9x9
+        ldr         r5, =sudoku9x9
         mov         lr, pc
         bx          r5
 
@@ -57,7 +57,7 @@ stop:
 # En caso de estar establecido todo deberiamos limpiar
 # los candidatos.
 
-		# Establecer registros para preparar llamada ARM
+		# Preparar bloque de activacion
 
 		BL      ARM_sudoku_2016     /* FUNCTION CALL */
 
@@ -73,26 +73,41 @@ ARM_sudoku_2016:
 		STMFD   sp!, {r4-r11}
 
 		# @cuadricula en r0
-		MOV		r1, #0
-		MOV		r2, 0x1FF0		//Valor que estableceremos en celdas vacias
+		MOV		r1, #0			//Fila
+		MOV		r2, #0			//Columna
+		#Cosicas para hacer mov con mas de 1 byte
+		MOV		r3, #0x1f
+		MOV		r3, r3, LSL #8
+		ADD		r3, r3,#0xf0
+
+		MOV		r4, r0			//Direccion elemento a modificar
+		#Inicio bucle
+		columnloop:
+		ADD		r2, r2, #1
+
 		rowloop:
 
-		#Inicio bucle
-		LDM		r0, {r3-r12}	//Load de la primera fila de la cuadricula
+		ADD		r1, r1, #1
+		#Load celda actual
+		LDRH	r5, [r4]		//Celda actual
+		#Comprobamos bit 15 del elemento para saber si es Pista
+		MOV		r6,r5,LSR #15
+		CMP		r6, #1
+		ADDEQ	r4, r4, #2
+		BEQ		rowloop			//Elemento es pista
 
-		#Preparamos nueva iteracion
-		ADD		r1,r1,#1
+		#Elemento vacio
+		STRH	r3, [r4], #2
 		CMP		r1,#9
 		BNE		rowloop
+		MOV		r1, #0
+		ADD		r4, r4, #14	//Actualizamos direccion elemento teniendo en cuenta el padding
+		CMP		r2,#9		//Comparamos que hemos recorrido todo el sudoku
+		BEQ		end
+		B		columnloop	//Fin de fila
 
 
-
-
-
-		# Iterar fila a fila con STORE multiples
-
-
-
+end:	B		end
 
 
 ################################################################################
