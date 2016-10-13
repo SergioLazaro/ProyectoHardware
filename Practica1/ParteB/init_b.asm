@@ -42,7 +42,7 @@ Reset_Handler:
 # using the stack pointer
 # function __c_copy is in copy.c
         LDR     r0, =cuadricula  /*  puntero a la @ inicial de la cuadricula */
-		#B		ARM_sudoku_2016
+		B		ARM_sudoku_2016
 .extern     sudoku9x9
         ldr         r5, =sudoku9x9
         mov         lr, pc
@@ -73,15 +73,14 @@ ARM_sudoku_2016:
 		STMFD   sp!, {r4-r11}
 
 		#Inicializamos sudoku
-		B sudoku_candidatos_init_arm
-
-		#Propagamos candidatos
-fininit:B sudoku_candidatos_propagar_arm
+		BL sudoku_candidatos_init_arm
 
 end:	B		end
 
 
 sudoku_candidatos_init_arm:
+
+		STMFD   sp!, {r0-r6, LR}
 
 		# @cuadricula en r0
 		MOV		r1, #0			//IterFila
@@ -118,40 +117,59 @@ sudoku_candidatos_init_arm:
 		ADD		r4, r4, #14	//Actualizamos direccion elemento teniendo en cuenta el padding
 		CMP		r2,#9		//Comparamos que hemos recorrido todo el sudoku
 		BLO		columnloop	//Fin de fila
-		B		fininit
 
-sudoku_candidatos_propagar_arm:
+		BL 		sudoku_candidatos_propagar_todos_arm
+
+		LDMFD SP!, { r0-r6, PC }
+
+sudoku_candidatos_propagar_todos_arm:
+
+		STMFD   sp!, {r0-r7, LR}
 
 		# @cuadricula en r0
 		MOV		r1, #0			//IterFila
 		MOV		r2, #0			//IterColumna
 
-		#Leer celda
-		columns:
-
-		ADD		r2, r2, #1
-
 		rows:
-		ADD		r1, r1, #1
-		MOV		r3, r0			//Empleamos otro registro para no alterar @cuadricula
-		LDRH	r4, [r3], #2	//Celda
-		AND		r5, r4, #0xf	//AND para quedarnos con el valor de la celda
 
-		CMP		r5, #0			//Comprobamos que es una pista
+		LDRH	r4, [r0]		//Celda
+		AND		r3, r4, #0xf	//AND para quedarnos con el valor de la celda
+
+		CMP		r3, #0			//Comprobamos que es una pista
+		BEQ		next
+
+		#Creamos mascara para modificar bit
+		MOV		r6, #1
+		MOV		r5, #0				//Empleamos el 0 para el LSL
+		ADD		r3, r3, #3			//Sumamos (4-1) para evitar los 4 bits de valor
+		ADD		r6, r5, r6, LSL r3	//Colocamos bit a modificar en ((valor - 1) + 4)
+
+		#Preparamos registro para modificar candidatos
+		MOV		r7, #0xff
+		ADD		r7, r5, r7, LSL #8
+		ADD		r7 , r7, #0xff		//r7 = 0xffff <- aprovechamos para AND posterior
+		SUB		r4, r7, r6
+
 		#comprobar fila
-		BNE		checkfila
+		BL	checkfila
 		#comprobar columna
-		BNE		checkcolum
+		BL	checkcolum
 		#comprobar region
-		BNE		checkreg
+		BL	checkreg
 
+		#Check iteracion fila
+next:	ADD		r0, r0, #2
+		ADD		r1, r1, #1
 		CMP		r1, #9
-		BNE		rows
+		BNE		rows			//Iteracion siguiente celda en fila
+		#Check iteracion columna
+		ADD		r2, r2, #1
 		CMP		r2, #9
-		BLO		columns
+		ADDLO	r0, r0, #14		//Modificamos direccion inicio nueva fila
+		MOVLO	r1, #0
+		BLO		rows			//Iteracion nueva fila
 
-		#POP	{pc}	Fin subrutina
-
+		LDMFD SP!, { r0-r7, PC }
 
 
 ################################################################################
@@ -162,23 +180,25 @@ checkfila:
 		#r1 -> posicion fila
 		#r2 -> posicion columna
 		#r3 -> valor
+		#r4 -> mascara para AND
 
-		MOV		r4, #0
+		STMFD   sp!, {r0-r6, LR}
+
+		MOV		r5, #0
 		#Colocamos registro al principio de la fila
-		SUB		r0, r0, r2, LSL #1
-		#Creamos mascara para modificar bit
-		MOV		r5, #1
-		ADD		r3, r3, #4
-		ADD		r5, r4, r5, LSL r3	//Colocamos bit a modificar en (valor + 4)
+		SUB		r0, r0, r1, LSL #1
+
 		loopfila:
 		LDRH	r6, [r0]
-		AND		r6, r6, r5
+
+		AND		r6, r6, r4			//Guardamos la modificacion de la celda
 		STRH	r6, [r0], #2
-		ADD		r4, r4, #1
+		ADD		r5, r5, #1
 		//Comprobamos iteracion
-		CMP		r4, #9
+		CMP		r5, #9
 		BLT		loopfila
-		#POP	{pc}	Fin subrutina
+
+		LDMFD SP!, { r0-r6, PC }
 
 checkcolum:
 		#Obtener registro que hemos apilado
@@ -186,23 +206,24 @@ checkcolum:
 		#r1 -> posicion fila
 		#r2 -> posicion columna
 		#r3 -> valor
+		#r4 -> mascara para AND
 
-		MOV		r4, #0
-		#Colocamos registro al principio de la fila
-		SUB		r0, r0, r1, LSL #5
-		#Creamos mascara para modificar bit
-		MOV		r5, #1
-		ADD		r3, r3, #4
-		ADD		r5, r4, r5, LSL r3	//Colocamos bit a modificar en (valor + 4)
+		STMFD   sp!, {r0-r6, LR}
+
+		MOV		r5, #0
+		#Colocamos registro al principio de la columna
+		SUB		r0, r0, r2, LSL #5
+
 		loopcol:
 		LDRH	r6, [r0]
-		AND		r6, r6, r5
+		AND		r6, r6, r4
 		STRH	r6, [r0], #32
-		ADD		r4, r4, #1
+		ADD		r5, r5, #1
 		//Comprobamos iteracion
-		CMP		r4, #9
+		CMP		r5, #9
 		BLT		loopcol
-		#POP	{pc}	Fin subrutina
+
+		LDMFD SP!, { r0-r6, PC }
 
 checkreg:
 		#Obtener registro que hemos apilado
@@ -210,58 +231,55 @@ checkreg:
 		#r1 -> posicion fila
 		#r2 -> posicion columna
 		#r3 -> valor
+		#r4 -> mascara para AND
+		STMFD   sp!, {r0-r6, LR}
 
 		#Evitamos convertir entero en long y recuperarlo mas tarde
 		#como se hace en C
 		#Obtenemos posicion inicio region fila
 		CMP 	r1, #0
-		MOVHS 	r4, #0
+		MOVHS 	r5, #0
 		CMP 	r1, #3
-		MOVHS 	r4, #3
+		MOVHS 	r5, #3
 		CMP 	r1, #6
-		MOVHS 	r4, #6
+		MOVHS 	r5, #6
 		# Movemos posicion inicio region fila para ahorrar registro
-		SUB 	r1, r1, r4
+		SUB 	r1, r1, r5
 		# Obtenemos posicion inicio region columna
 		CMP 	r2, #0
-		MOVHS 	r5, #0
+		MOVHS 	r6, #0
 		CMP 	r2, #3
-		MOVHS 	r5, #3
+		MOVHS 	r6, #3
 		CMP 	r2, #6
-		MOVHS 	r5, #6
+		MOVHS 	r6, #6
 		# Movemos posicion inicio region columna para ahorrar registro
-		SUB 	r2, r2, r5
-
-
-		#Creamos mascara para modificar bit
-		MOV		r4, #1
-		MOV		r5, #0
-		ADD		r3, r3, #4
-		ADD		r4, r5 , r4, LSL r3	//Colocamos bit a modificar en (valor + 4)
+		SUB 	r2, r2, r6
 
 		#r1 -> posicion inicio region fila
 		#r2 -> posicion inicio region columna
 
-		SUB		r0, r0, r2, LSL #1		//Movemos posicion inicio fila region
-		SUB		r0, r0, r1, LSL #5		//Movemos posicion inicio columna region
+		SUB		r0, r0, r1, LSL #1		//Movemos posicion inicio fila region
+		SUB		r0, r0, r2, LSL #5		//Movemos posicion inicio columna region
 
 		MOV		r2, #0		//Contador hasta tres por fila
 		MOV		r3, #0
 		loopreg:
 		MOV		r1, r0		//Copiamos direccion inicial fila
+
+		iterfilareg:
 		LDRH	r5, [r1]
 		AND		r5, r5, r4
 		STRH	r5, [r1], #2
 		ADD		r2, r2, #1
 		CMP		r2, #3
-		BLT		loopreg
+		BLT		iterfilareg
 		ADD		r3, r3, #1
 		CMP		r3, #3
 		MOVLT	r2, #0		//Reiniciamos contador
 		ADDLT	r0, r0, #32
 		BLT		loopreg
 
-		#POP	{pc}	Fin subrutina
+		LDMFD SP!, { r0-r6, PC }
 ################################################################################
 .data
 .ltorg     
