@@ -126,26 +126,26 @@ int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 extern int sudoku_candidatos_init_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
 extern int sudoku_candidatos_propagar_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],uint8_t fila, uint8_t columna);
 
-void call_sudoku_arm_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
+/**void call_sudoku_arm_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 {
 	struct timeval  tv1, tv2;
 
 	int celdas_vacias;
-	gettimeofday(&tv1, NULL);
+	gettimeofday(&tv1, 0);
 	celdas_vacias = sudoku_candidatos_init_arm(cuadricula);
-	gettimeofday(&tv2, NULL);
+	gettimeofday(&tv2, 0);
 	double tiempo = (tv2.tv_usec - tv1.tv_usec)/1000;
 	printf("Tiempo ejecucion ARM-ARM: %f",tiempo);
 }
 
 void call_sudoku_c_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 {
-	struct timeval  tv1, tv2;
+		struct timeval  tv1, tv2;
 
 		int celdas_vacias;
-		gettimeofday(&tv1, NULL);
+		gettimeofday(&tv1, 0);
 		celdas_vacias = sudoku_candidatos_init_c(cuadricula);
-		gettimeofday(&tv2, NULL);
+		gettimeofday(&tv2, 0);
 		double tiempo = (tv2.tv_usec - tv1.tv_usec)/1000;
 		printf("Tiempo ejecucion C-C: %f",tiempo);
 }
@@ -179,8 +179,9 @@ sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready)
 
 	//celdas_vacias = sudoku_candidatos_init_c(cuadricula);
 
-    call_sudoku_arm_arm(cuadricula);
-    call_sudoku_c_c(cuadricula);
+    //call_sudoku_arm_arm(cuadricula);
+    //call_sudoku_c_c(cuadricula);
+
     /* verificar que la lista de candidatos calculada es correcta */
     /* cuadricula_candidatos_verificar(...) */
 

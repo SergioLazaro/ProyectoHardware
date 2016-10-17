@@ -48,6 +48,7 @@ Reset_Handler:
 .global sudoku_candidatos_propagar_arm
 
         LDR     r0, =cuadricula  /*  puntero a la @ inicial de la cuadricula */
+
 .extern     sudoku9x9
         ldr         r5, =sudoku9x9
         mov         lr, pc
@@ -59,6 +60,123 @@ stop:
 
 
 #	USING THUMB CODE
+################################################################################
+
+sudoku_candidatos_propagar_thumb:
+		#Obtener registro que hemos apilado
+		#r0 -> @celda
+		#r1 -> posicion fila
+		#r2 -> posicion columna
+
+		STMIA   sp!, {r4-r6, lr}
+
+		MOV		r4, r0			//r4 -> posicion celda inicial
+
+		#Obtenemos celda de interes
+		LSL		r5, r1, #5
+		ADD		r4, r4, r5
+
+		LSL		r5, r2, #1
+		ADD		r4,r4, r5		//r4 -> contiene la posicion de interes
+
+		LDRH	r5, [r4]		//r5 -> elemento
+
+		# Comprobamos si pista
+		LSR		r5, r5, #15		//r6 -> 1 (pista) o 0 (vacio)
+
+		CMP		r5, #0
+		BEQ		fin_thumb
+
+		#Propagamos en fila
+		#LDR		r6, =checkfila_thumb
+		#BX		r6
+		#Propagamos en columna
+		LDR		r6, =checkcol_thumb
+		BX		r6
+		#Propagamos en region
+		LDR		r6, =checkreg_thumb
+		BX		r6
+
+		MOV		r0, #1
+		LDMIA	sp!, { r4-r6, pc }
+
+fin_thumb:
+		MOV		r0, #0
+		LDMIA	sp!, { r4-r6, pc }
+
+
+checkfila_thumb:
+		#Obtener registro que hemos apilado
+		#r0 -> @celda_inicial
+		#r1 -> posicion fila
+		#r2 -> posicion columna
+
+		STMIA   sp!, {r3-r6, lr}
+
+		LSL		r2, r1, #5
+		ADD		r2, r0, r2			//Obtenemos posicion inicial de la fila
+		MOV		r3, #0				//Contador iteraciones
+
+		LDRH	r4, [r2]			//r4 contiene valor de celda
+
+		ADD		r5, r4, #3			//Sumamos (4-1) para evitar los 4 bits de valor
+		AND		r5, r5, #0xf		//r5 contiene el bit a modificar
+		MOV		r6, #1
+		LSL		r5, r6, r5			//Obtenemos mascara metiendo ceros a la derecha N veces segun valor
+
+		loopfila_thumb:
+
+		LDRH	r4, [r2]
+		SUB		r4, r4, r5
+		STRH	r4, [r2], #2
+		ADD		r3, r3, #1
+
+		//Comprobamos iteracion
+		CMP		r3, #9
+		BLT		loopfila_thumb
+
+
+		LDMIA	sp!, { r3-r6, pc }
+
+
+checkcol_thumb:
+
+		#Obtener registro que hemos apilado
+		#r0 -> @celda_inicial
+		#r1 -> posicion fila
+		#r2 -> posicion columna
+
+		STMIA   sp!, {r3-r6, lr}
+
+		LSL		r1, r2, #1
+		ADD		r2, r0, r1			//Obtenemos posicion inicial de la fila
+		MOV		r3, #0				//Contador iteraciones
+
+		LDRH	r4, [r2]			//r4 contiene valor de celda
+
+		ADD		r5, r4, #3			//Sumamos (4-1) para evitar los 4 bits de valor
+		AND		r5, r5, #0xf		//r5 contiene el bit a modificar
+		MOV		r6, #1
+		LSL		r5, r6, r5			//Obtenemos mascara metiendo ceros a la derecha N veces segun valor
+
+		loopcol_thumb:
+
+		LDRH	r4, [r2]
+		SUB		r4, r4, r5
+		STRH	r4, [r2], #32
+		ADD		r3, r3, #1
+
+		//Comprobamos iteracion
+		CMP		r3, #9
+		BLT		loopcol_thumb
+
+
+		LDMIA	sp!, { r3-r6, pc }
+
+checkreg_thumb:
+
+
+################################################################################
 
 #	TO DO
 
@@ -109,7 +227,9 @@ sudoku_candidatos_init_arm:
 
 		rows:
 		LDR		r0, =cuadricula	//Necesario ya que r0 contiene el return del metodo propagar
-		BL		sudoku_candidatos_propagar_arm
+		#BL		sudoku_candidatos_propagar_arm
+		LDR		r7, =sudoku_candidatos_propagar_thumb
+		BX		r7
 		ADD		r6, r6, r0		//Sumamos valor de celdas_vacias
 		ADD		r2, r2, #1
 		CMP		r2, #9
