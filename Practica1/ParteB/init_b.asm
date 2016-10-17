@@ -64,32 +64,38 @@ stop:
 
 sudoku_candidatos_propagar_thumb:
 		#Obtener registro que hemos apilado
-		#r0 -> @celda
-		#r1 -> posicion fila
-		#r2 -> posicion columna
+		#r0 -> @celda_inicial
+		#r1 -> numero fila
+		#r2 -> numero columna
 
 		STMIA   sp!, {r4-r6, lr}
+
 
 		MOV		r4, r0			//r4 -> posicion celda inicial
 
 		#Obtenemos celda de interes
-		LSL		r5, r1, #5
-		ADD		r4, r4, r5
+		LSL		r3, r1, #5		//Posicionamos eje Y
+		ADD		r4, r4, r3
+		LSL		r3, r2, #1		//Posicionamos eje X
+		ADD		r4,r4, r3		//r4 -> contiene la posicion de interes
 
-		LSL		r5, r2, #1
-		ADD		r4,r4, r5		//r4 -> contiene la posicion de interes
-
-		LDRH	r5, [r4]		//r5 -> elemento
+		LDRH	r3, [r4]		//r3 -> elemento
 
 		# Comprobamos si pista
-		LSR		r5, r5, #15		//r6 -> 1 (pista) o 0 (vacio)
+		LSR		r6, r3, #15		//r4 -> 1 (pista) o 0 (vacio)
 
-		CMP		r5, #0
+ 		CMP		r6, #0
 		BEQ		fin_thumb
 
+		#Obtenemos mascara para bajar bit
+		ADD		r5, r3, #3			//Sumamos (4-1) para evitar los 4 bits de valor
+		AND		r5, r5, #0xf		//r5 contiene el bit a modificar
+		MOV		r6, #1
+		LSL		r4, r6, r5			//Obtenemos mascara metiendo ceros a la derecha N veces segun valor
+
 		#Propagamos en fila
-		#LDR		r6, =checkfila_thumb
-		#BX		r6
+		LDR		r6, =checkfila_thumb
+		BX		r6
 		#Propagamos en columna
 		LDR		r6, =checkcol_thumb
 		BX		r6
@@ -107,9 +113,11 @@ fin_thumb:
 
 checkfila_thumb:
 		#Obtener registro que hemos apilado
-		#r0 -> @celda_inicial
-		#r1 -> posicion fila
-		#r2 -> posicion columna
+		#r0 -> @celda_inicia
+		#r1 -> numero fila
+		#r2 -> numero columna
+		#r3 -> valor
+		#r4 -> mascara para AND
 
 		STMIA   sp!, {r3-r6, lr}
 
@@ -117,18 +125,10 @@ checkfila_thumb:
 		ADD		r2, r0, r2			//Obtenemos posicion inicial de la fila
 		MOV		r3, #0				//Contador iteraciones
 
-		LDRH	r4, [r2]			//r4 contiene valor de celda
-
-		ADD		r5, r4, #3			//Sumamos (4-1) para evitar los 4 bits de valor
-		AND		r5, r5, #0xf		//r5 contiene el bit a modificar
-		MOV		r6, #1
-		LSL		r5, r6, r5			//Obtenemos mascara metiendo ceros a la derecha N veces segun valor
-
 		loopfila_thumb:
-
-		LDRH	r4, [r2]
-		SUB		r4, r4, r5
-		STRH	r4, [r2], #2
+		LDRH	r5, [r2]			//r4 contiene valor de celda
+		SUB		r5, r5, r4
+		STRH	r5, [r2], #2
 		ADD		r3, r3, #1
 
 		//Comprobamos iteracion
@@ -140,11 +140,12 @@ checkfila_thumb:
 
 
 checkcol_thumb:
-
 		#Obtener registro que hemos apilado
-		#r0 -> @celda_inicial
-		#r1 -> posicion fila
-		#r2 -> posicion columna
+		#r0 -> @celda
+		#r1 -> numero fila
+		#r2 -> numero columna
+		#r3 -> valor
+		#r4 -> mascara para AND
 
 		STMIA   sp!, {r3-r6, lr}
 
@@ -152,18 +153,13 @@ checkcol_thumb:
 		ADD		r2, r0, r1			//Obtenemos posicion inicial de la fila
 		MOV		r3, #0				//Contador iteraciones
 
-		LDRH	r4, [r2]			//r4 contiene valor de celda
-
-		ADD		r5, r4, #3			//Sumamos (4-1) para evitar los 4 bits de valor
-		AND		r5, r5, #0xf		//r5 contiene el bit a modificar
-		MOV		r6, #1
-		LSL		r5, r6, r5			//Obtenemos mascara metiendo ceros a la derecha N veces segun valor
+		LDRH	r5, [r2]			//r4 contiene valor de celda
 
 		loopcol_thumb:
 
-		LDRH	r4, [r2]
-		SUB		r4, r4, r5
-		STRH	r4, [r2], #32
+		LDRH	r5, [r2]
+		SUB		r5, r5, r4
+		STRH	r5, [r2], #32
 		ADD		r3, r3, #1
 
 		//Comprobamos iteracion
@@ -174,6 +170,60 @@ checkcol_thumb:
 		LDMIA	sp!, { r3-r6, pc }
 
 checkreg_thumb:
+		#Obtener registro que hemos apilado
+		#r0 -> @celda_inicial
+		#r1 -> posicion fila
+		#r2 -> posicion columna
+		#r3 -> valor
+		#r4 -> mascara para AND
+
+		STMIA   sp!, {r3-r6, lr}
+
+		#Evitamos convertir entero en long y recuperarlo mas tarde
+		#como se hace en C
+		#Obtenemos posicion inicio region fila
+		CMP 	r1, #0
+		MOVHS 	r5, #0
+		CMP 	r1, #3
+		MOVHS 	r5, #3
+		CMP 	r1, #6
+		MOVHS 	r5, #6
+		# Obtenemos posicion inicio region columna
+		CMP 	r2, #0
+		MOVHS 	r6, #0
+		CMP 	r2, #3
+		MOVHS 	r6, #3
+		CMP 	r2, #6
+		MOVHS 	r6, #6
+
+		#Posicionamos en eje Y
+		LSL		r2, r5, #5
+		ADD		r2, r0, r2			//Obtenemos posicion inicial de la fila
+
+		#Posicionamos en eje X
+		LSL		r1, r6, #1
+		ADD		r2, r2, r1			//Obtenemos posicion inicial de la fila
+		MOV		r0, #0				//contador hasta 3 en horizontal
+		MOV		r1, #0				//contador hasta 3 en vertical
+		MOV		r5, r2				//Posicion auxiliar para modificar, mantenemos r2
+loop_reg_thumb:
+
+		LDRH	r6, [r5]
+		SUB		r6, r6, r4			//Modificamos con la mascara
+		STRH	r6, [r5], #2
+
+		ADD		r0, r0, #1			//Continuamos en fila
+		CMP		r0, #3
+		BLT		loop_reg_thumb
+
+		ADD		r1, r1, #1
+		CMP		r1, #3				//comprobamos si hemos acabado la region
+		MOVLT	r0, #0				//Avanzamos de fia
+		ADDLT	r5, r2, #32
+		MOVLT	r2, r5				//actualizamos registro r2 persistente para apuntar siguiente columna
+		BLT		loop_reg_thumb
+
+		LDMIA	sp!, { r3-r6, pc }
 
 
 ################################################################################
