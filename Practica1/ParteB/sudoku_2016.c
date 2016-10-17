@@ -1,9 +1,13 @@
 #include "sudoku_2016.h"
 
+
 /* *****************************************************************************
  * Funciones privadas (static)
  * (no pueden ser invocadas desde otro fichero) */
  
+
+static inline int OPCION_EJECUCION;
+
 /* *****************************************************************************
  * modifica el valor almacenado en la celda indicada */
 static inline void
@@ -63,27 +67,35 @@ static inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_C
  * propaga el valor de una determinada celda
  * para actualizar las listas de candidatos
  * de las celdas en su su fila, columna y región */
-static void
-sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
+int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
                              uint8_t fila, uint8_t columna)
 {
-    /* valor que se propaga */
-    uint8_t valor = celda_leer_valor(cuadricula[fila][columna]);
 
-    /* recorrer fila descartando valor de listas candidatos */
-	descartar_candidatos_fila(cuadricula, fila, valor);
-    /* recorrer columna descartando valor de listas candidatos */
-	descartar_candidatos_columna(cuadricula, columna, valor);
-    /* recorrer region descartando valor de listas candidatos */
-	descartar_candidatos_region(cuadricula, fila, columna, valor);
+	if(cuadricula[fila][columna] & (1 << 15)){
+		/* valor que se propaga */
+		uint8_t valor = celda_leer_valor(cuadricula[fila][columna]);
+
+		/* recorrer fila descartando valor de listas candidatos */
+		descartar_candidatos_fila(cuadricula, fila, valor);
+		/* recorrer columna descartando valor de listas candidatos */
+		descartar_candidatos_columna(cuadricula, columna, valor);
+		/* recorrer region descartando valor de listas candidatos */
+		descartar_candidatos_region(cuadricula, fila, columna, valor);
+
+		return 0;
+
+	}
+	else{
+		/* else actualizar contador de celdas vacias */
+		return 1;
+	}
 }
 
 /* *****************************************************************************
  * calcula todas las listas de candidatos (9x9)
  * necesario tras borrar o cambiar un valor (listas corrompidas)
  * retorna el numero de celdas vacias */
-static int
-sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
+int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 {
     int celdas_vacias = 0;
 
@@ -93,42 +105,62 @@ sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 	//loop
 	for(i=0; i<NUM_FILAS; i++){
 		for(j=0; j<NUM_FILAS; j++){
-			//Si la celda no contiene un valor, ponemos todos los candidatos a 1
-			//para mas tarde eliminar los que ya no lo sean
-			//IMPORTANTE
-			// check puede valer 1 o 0. Hay que tener en cuenta que un 1 = true y
-			// un 0 = false.
-			// Miramos primer bit de celda:
-			//		Si es 1 (pista) -> (bit 15) AND 1 = 1 #true (no queremos entrar)
-			//		Si es 0 (vacia) -> (bit 15) AND 1 = 0 #false (queremos entrar)
-			//
-			// Negamos para entrar en el bucle
-
-			check = cuadricula[i][j] & (1 << 15);
-			if(!check){
-				/* inicializa lista de candidatos */
-				cuadricula[i][j]=cuadricula[i][j] | 0x1FF0;
-			}
+			/* inicializa lista de candidatos */
+			cuadricula[i][j] = cuadricula[i][j] | 0x1FF0;
 		}
 	}
+	if(OPCION_EJECUCION == 0){
 
+	}
 	/* recorrer cuadricula celda a celda */
 	for(i=0; i<NUM_FILAS; i++){
 		for(j=0; j<NUM_FILAS; j++){
-        	/* si celda tiene valor */
-			if(cuadricula[i][j] & (1 << 15)){
-        		/*    sudoku_candidatos_propagar_c(...); */
-				sudoku_candidatos_propagar_c(cuadricula, i, j);
-        	/* else actualizar contador de celdas vacias */
-			}else{
-				celdas_vacias++;
-			}
+			celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j);
 		}
 	}
 
     /* retorna el numero de celdas vacias */
     return (celdas_vacias);
 }
+
+extern int sudoku_candidatos_init_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
+extern int sudoku_candidatos_propagar_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],uint8_t fila, uint8_t columna);
+
+void call_sudoku_arm_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
+{
+	struct timeval  tv1, tv2;
+
+	int celdas_vacias;
+	gettimeofday(&tv1, NULL);
+	celdas_vacias = sudoku_candidatos_init_arm(cuadricula);
+	gettimeofday(&tv2, NULL);
+	double tiempo = (tv2.tv_usec - tv1.tv_usec)/1000;
+	printf("Tiempo ejecucion ARM-ARM: %f",tiempo);
+}
+
+void call_sudoku_c_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
+{
+	struct timeval  tv1, tv2;
+
+		int celdas_vacias;
+		gettimeofday(&tv1, NULL);
+		celdas_vacias = sudoku_candidatos_init_c(cuadricula);
+		gettimeofday(&tv2, NULL);
+		double tiempo = (tv2.tv_usec - tv1.tv_usec)/1000;
+		printf("Tiempo ejecucion C-C: %f",tiempo);
+}
+
+/*void call_sudoku_arm_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
+{
+	int celdas_vacias;
+	clock_t inicio = clock();
+	celdas_vacias = sudoku_candidatos_init_arm(cuadricula);
+	clock_t fin = clock();
+	double tiempo = (fin - inicio)/CLOCKS_PER_SEC;
+	printf("Tiempo ejecucion ARM-ARM: %f",tiempo);
+}
+*/
+
 
 
 /* *****************************************************************************
@@ -144,10 +176,14 @@ sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready)
     int celdas_vacias;     //numero de celdas aun vacias
 
     /* calcula lista de candidatos, versión C */
-    celdas_vacias = sudoku_candidatos_init_c(cuadricula);
 
+	//celdas_vacias = sudoku_candidatos_init_c(cuadricula);
+
+    call_sudoku_arm_arm(cuadricula);
+    call_sudoku_c_c(cuadricula);
     /* verificar que la lista de candidatos calculada es correcta */
     /* cuadricula_candidatos_verificar(...) */
 
     /* repetir para otras versiones (C optimizado, ARM, THUMB) */
 }
+
