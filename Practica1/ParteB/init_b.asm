@@ -41,15 +41,26 @@ Reset_Handler:
 # If there are more parameters you have to store them in the data stack
 # using the stack pointer
 # function __c_copy is in copy.c
+
+# Declaramos subrutinas globales para poder llamar desde C
+
+.global sudoku_candidatos_init_arm
+.global sudoku_candidatos_propagar_arm
+
         LDR     r0, =cuadricula  /*  puntero a la @ inicial de la cuadricula */
-		B		ARM_sudoku_2016
 .extern     sudoku9x9
         ldr         r5, =sudoku9x9
         mov         lr, pc
         bx          r5
-
+        LDR			r0, =cuadricula	/* Volvemos a obtener direccion cuadricula */
+		BL			sudoku_candidatos_init_arm
 stop:
         B       stop        /*  end of program */
+
+
+#	USING THUMB CODE
+
+#	TO DO
 
 #	USING ARM CODE
 #
@@ -57,86 +68,93 @@ stop:
 # En caso de estar establecido todo deberiamos limpiar
 # los candidatos.
 
-		# Preparar bloque de activacion
-
-		BL      ARM_sudoku_2016     /* FUNCTION CALL */
-
-
-#	USING THUMB CODE
-
-# Funcion ARM
-
-ARM_sudoku_2016:
-
-		#  saves the working registers
-        # Recordad que puede modificar r0, r1, r2 y r3 sin guardarlos previamente
-		STMFD   sp!, {r4-r11}
-
-		#Inicializamos sudoku
-		BL sudoku_candidatos_init_arm
-
-end:	B		end
-
-
 sudoku_candidatos_init_arm:
 
-		STMFD   sp!, {r0-r6, LR}
+		STMFD   sp!, {r4-r6, LR}
 
+		MOV		r4, r0
 		# @cuadricula en r0
 		MOV		r1, #0			//IterFila
 		MOV		r2, #0			//IterColumna
+		MOV		r6, #0			//Celdas_vacias
 		#Cosicas para hacer mov con mas de 1 byte
 		MOV		r3, #0x1f
 		MOV		r3, r3, LSL #8
 		ADD		r3, r3,#0xf0
 
-		MOV		r4, r0			//Direccion elemento a modificar
 		#Inicio bucle
 		columnloop:
-		ADD		r2, r2, #1
+		ADD		r1, r1, #1
 
 		rowloop:
 
-		ADD		r1, r1, #1
+		ADD		r2, r2, #1		//Actualizamos iterFile
 
-		#Comprobamos bit 15 del elemento para saber si es Pista
-		LDRH	r5, [r4]		//Celda actual
-		MOV		r6,r5,LSR #15
-		CMP		r6, #1
-
-		#Celda es pista
-		ADDEQ	r4, r4, #2		//Actualizamos direccion de memoria al siguiente elemento
-
-		#Elemento vacio
-		STRNEH	r3, [r4], #2
+		LDRH	r5, [r4]
+		ORR		r5, r5, r3
+		STRH	r5, [r4], #2
 
 		#Comprobamos si es ultimo elemento (fin bucle fila)
-		CMP		r1,#9
+		CMP		r2,#9
 		BNE		rowloop
-		MOV		r1, #0
+		MOV		r2, #0
 		ADD		r4, r4, #14	//Actualizamos direccion elemento teniendo en cuenta el padding
-		CMP		r2,#9		//Comparamos que hemos recorrido todo el sudoku
+		CMP		r1,#9		//Comparamos que hemos recorrido todo el sudoku
 		BLO		columnloop	//Fin de fila
 
-		BL 		sudoku_candidatos_propagar_todos_arm
+		# Iniciamos propagar !!
 
-		LDMFD SP!, { r0-r6, PC }
-
-sudoku_candidatos_propagar_todos_arm:
-
-		STMFD   sp!, {r0-r7, LR}
-
-		# @cuadricula en r0
-		MOV		r1, #0			//IterFila
-		MOV		r2, #0			//IterColumna
+		MOV		r1, #0			//IterHorizontal = 0
+		MOV		r2, #0			//IterVertical = 0
 
 		rows:
+		LDR		r0, =cuadricula	//Necesario ya que r0 contiene el return del metodo propagar
+		BL		sudoku_candidatos_propagar_arm
+		ADD		r6, r6, r0		//Sumamos valor de celdas_vacias
+		ADD		r2, r2, #1
+		CMP		r2, #9
+		BNE		rows			//Iteracion siguiente celda en fila
+		#Check iteracion columna
+		ADD		r1, r1, #1
+		CMP		r1, #9
+		MOVLO	r2, #0
+		BLO		rows			//Iteracion nueva fila
 
-		LDRH	r4, [r0]		//Celda
+		MOV		r0, r6
+		LDMFD SP!, { r4-r6, PC }
+
+sudoku_candidatos_propagar_arm:
+		#Obtener registro que hemos apilado
+		#r0 -> @celda
+		#r1 -> posicion fila
+		#r2 -> posicion columna
+
+		STMFD   sp!, {r4-r7, LR}
+
+		#Obtenemos direccion elemento a modificar
+
+		ADD		r4, r0, r1, LSL #5		//Nos colocamos en la j
+		ADD		r4, r4, r2, LSL #1		//Nos colocamos en la i
+
+		# Obtenemos el primer bit que nos indica si es pista o no
+		/*
+		Dos opciones:
+
+		1) Hacer comprobacion del bit 15 y si es pista se obtiene el valor, evitando asi ejecutar
+			instrucciones no necesarias. Se necesitaria una instruccion mas para copiar el contenido
+			de la celda.
+
+		2) Realizarlo como esta actualmente.
+
+		*/
+
+		LDRH	r4, [r4]		//Celda
 		AND		r3, r4, #0xf	//AND para quedarnos con el valor de la celda
+		MOV		r5, #0
+		ADD		r4, r5, r4, LSR #15	//r4 contiene el bit pista
 
-		CMP		r3, #0			//Comprobamos que es una pista
-		BEQ		next
+		CMP		r4, #0			//Comprobamos que es una pista
+		BEQ		fin_propagar_1
 
 		#Creamos mascara para modificar bit
 		MOV		r6, #1
@@ -157,19 +175,14 @@ sudoku_candidatos_propagar_todos_arm:
 		#comprobar region
 		BL	checkreg
 
-		#Check iteracion fila
-next:	ADD		r0, r0, #2
-		ADD		r1, r1, #1
-		CMP		r1, #9
-		BNE		rows			//Iteracion siguiente celda en fila
-		#Check iteracion columna
-		ADD		r2, r2, #1
-		CMP		r2, #9
-		ADDLO	r0, r0, #14		//Modificamos direccion inicio nueva fila
-		MOVLO	r1, #0
-		BLO		rows			//Iteracion nueva fila
+		# Return 0 celdas_vacias
+		MOV		r0, #0
+		LDMFD 	SP!, { r4-r7, PC }
 
-		LDMFD SP!, { r0-r7, PC }
+		# Return 1 celdas_vacias
+fin_propagar_1:
+		MOV		r0, #1
+		LDMFD 	SP!, { r4-r7, PC }
 
 
 ################################################################################
@@ -177,62 +190,64 @@ next:	ADD		r0, r0, #2
 checkfila:
 		#Obtener registro que hemos apilado
 		#r0 -> @celda
-		#r1 -> posicion fila
-		#r2 -> posicion columna
+		#r1 -> numero fila
+		#r2 -> numero columna
 		#r3 -> valor
 		#r4 -> mascara para AND
 
-		STMFD   sp!, {r0-r6, LR}
+		STMFD   sp!, {r0-r7, LR}
 
 		MOV		r5, #0
 		#Colocamos registro al principio de la fila
-		SUB		r0, r0, r1, LSL #1
+		MOV		r7, r0
+		ADD		r7, r7, r1, LSL #5
 
 		loopfila:
-		LDRH	r6, [r0]
+		LDRH	r6, [r7]
 
 		AND		r6, r6, r4			//Guardamos la modificacion de la celda
-		STRH	r6, [r0], #2
+		STRH	r6, [r7], #2
 		ADD		r5, r5, #1
 		//Comprobamos iteracion
 		CMP		r5, #9
 		BLT		loopfila
 
-		LDMFD SP!, { r0-r6, PC }
+		LDMFD SP!, { r0-r7, PC }
 
 checkcolum:
 		#Obtener registro que hemos apilado
 		#r0 -> @celda
-		#r1 -> posicion fila
-		#r2 -> posicion columna
+		#r1 -> numero fila
+		#r2 -> numero columna
 		#r3 -> valor
 		#r4 -> mascara para AND
 
-		STMFD   sp!, {r0-r6, LR}
+		STMFD   sp!, {r0-r7, LR}
 
 		MOV		r5, #0
 		#Colocamos registro al principio de la columna
-		SUB		r0, r0, r2, LSL #5
+		MOV		r7, r0
+		ADD		r7, r7, r2, LSL #1
 
 		loopcol:
-		LDRH	r6, [r0]
+		LDRH	r6, [r7]
 		AND		r6, r6, r4
-		STRH	r6, [r0], #32
+		STRH	r6, [r7], #32
 		ADD		r5, r5, #1
 		//Comprobamos iteracion
 		CMP		r5, #9
 		BLT		loopcol
 
-		LDMFD SP!, { r0-r6, PC }
+		LDMFD SP!, { r0-r7, PC }
 
 checkreg:
 		#Obtener registro que hemos apilado
 		#r0 -> @celda
-		#r1 -> posicion fila
-		#r2 -> posicion columna
+		#r1 -> numero fila
+		#r2 -> numero columna
 		#r3 -> valor
 		#r4 -> mascara para AND
-		STMFD   sp!, {r0-r6, LR}
+		STMFD   sp!, {r0-r7, LR}
 
 		#Evitamos convertir entero en long y recuperarlo mas tarde
 		#como se hace en C
@@ -243,8 +258,6 @@ checkreg:
 		MOVHS 	r5, #3
 		CMP 	r1, #6
 		MOVHS 	r5, #6
-		# Movemos posicion inicio region fila para ahorrar registro
-		SUB 	r1, r1, r5
 		# Obtenemos posicion inicio region columna
 		CMP 	r2, #0
 		MOVHS 	r6, #0
@@ -252,19 +265,17 @@ checkreg:
 		MOVHS 	r6, #3
 		CMP 	r2, #6
 		MOVHS 	r6, #6
-		# Movemos posicion inicio region columna para ahorrar registro
-		SUB 	r2, r2, r6
 
 		#r1 -> posicion inicio region fila
 		#r2 -> posicion inicio region columna
-
-		SUB		r0, r0, r1, LSL #1		//Movemos posicion inicio fila region
-		SUB		r0, r0, r2, LSL #5		//Movemos posicion inicio columna region
+		MOV		r7, r0
+		ADD		r7, r7, r6, LSL #1		//Movemos posicion inicio fila region
+		ADD		r7, r7, r5, LSL #5		//Movemos posicion inicio columna region
 
 		MOV		r2, #0		//Contador hasta tres por fila
 		MOV		r3, #0
 		loopreg:
-		MOV		r1, r0		//Copiamos direccion inicial fila
+		MOV		r1, r7		//Copiamos direccion inicial fila
 
 		iterfilareg:
 		LDRH	r5, [r1]
@@ -276,10 +287,10 @@ checkreg:
 		ADD		r3, r3, #1
 		CMP		r3, #3
 		MOVLT	r2, #0		//Reiniciamos contador
-		ADDLT	r0, r0, #32
+		ADDLT	r7, r7, #32
 		BLT		loopreg
 
-		LDMFD SP!, { r0-r6, PC }
+		LDMFD SP!, { r0-r7, PC }
 ################################################################################
 .data
 .ltorg     
