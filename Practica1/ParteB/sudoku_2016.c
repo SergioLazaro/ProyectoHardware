@@ -6,7 +6,7 @@
  * (no pueden ser invocadas desde otro fichero) */
  
 
-static inline int OPCION_EJECUCION;
+static inline int OPCION_EJECUCION = 0;
 
 /* *****************************************************************************
  * modifica el valor almacenado en la celda indicada */
@@ -66,7 +66,7 @@ static inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_C
 /* *****************************************************************************
  * propaga el valor de una determinada celda
  * para actualizar las listas de candidatos
- * de las celdas en su su fila, columna y región */
+ * de las celdas en su su fila, columna y regiÃ³n */
 int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
                              uint8_t fila, uint8_t columna)
 {
@@ -97,24 +97,36 @@ int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
  * retorna el numero de celdas vacias */
 int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 {
-    int celdas_vacias = 0;
 
     /* recorrer cuadricula celda a celda */
 	//Creacion de variables
-	int i, j, check;
-	//loop
+	int i, j, celdas_vacias;
+
+	celdas_vacias = 0;
+
 	for(i=0; i<NUM_FILAS; i++){
 		for(j=0; j<NUM_FILAS; j++){
 			/* inicializa lista de candidatos */
 			cuadricula[i][j] = cuadricula[i][j] | 0x1FF0;
 		}
 	}
-	/* recorrer cuadricula celda a celda */
-	for(i=0; i<NUM_FILAS; i++){
-		for(j=0; j<NUM_FILAS; j++){
-			//celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j);
-			//celdas_vacias += sudoku_candidatos_propagar_arm(cuadricula, i, j);
-			celdas_vacias += puente_arm_thumb(cuadricula, i, j);
+	if(OPCION_EJECUCION == 0){		//C
+		for(i=0; i<NUM_FILAS; i++){
+			for(j=0; j<NUM_FILAS; j++){
+				celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j);
+			}
+		}
+	}else if(OPCION_EJECUCION == 1){		//ARM
+		for(i=0; i<NUM_FILAS; i++){
+			for(j=0; j<NUM_FILAS; j++){
+				celdas_vacias += sudoku_candidatos_propagar_arm(cuadricula, i, j);
+			}
+		}
+	}else{		//THUMB
+		for(i=0; i<NUM_FILAS; i++){
+			for(j=0; j<NUM_FILAS; j++){
+				celdas_vacias += puente_arm_thumb(cuadricula, i, j);
+			}
 		}
 	}
 
@@ -122,30 +134,56 @@ int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
     return (celdas_vacias);
 }
 
+int cuadricula_candidatos_verificar(CELDA cuadricula_verificar[NUM_FILAS][NUM_COLUMNAS],
+		CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]){
+	int i, j, check;
+	check = 0;
+	while(i < NUM_FILAS && check){
+		while(j < NUM_FILAS && check){
+			if(cuadricula_verificar[i][j] != cuadricula[i][j]){
+				check = 1;
+			}
+			j++;
+		}
+		i++;
+		j = 0;
+	}
+
+	return check;
+}
+
+
 extern int sudoku_candidatos_init_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
 extern int sudoku_candidatos_propagar_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],uint8_t fila, uint8_t columna);
 extern int puente_arm_thumb(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],uint8_t fila, uint8_t columna);
 
 /* *****************************************************************************
- * Funciones públicas
+ * Funciones pÃºblicas
  * (pueden ser invocadas desde otro fichero) */
 
 /* *****************************************************************************
  * programa principal del juego que recibe el tablero,
- * y la señal de ready que indica que se han actualizado fila y columna */
+ * y la seÃ±al de ready que indica que se han actualizado fila y columna */
 void
 sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready)
 {
-    int celdas_vacias, i;     //numero de celdas aun vacias
-
-
-    for(i = 0; i < 1000; i++){
+    int celdas_vacias, i, j, k, num_incorrectas;     //numero de celdas aun vacias
+    CELDA cuadricula_verificar[NUM_FILAS][NUM_COLUMNAS];
+    for(i = 0; i < 3; i++){
     	celdas_vacias = sudoku_candidatos_init_c(cuadricula);
+    	//Codigo para obtener cuadricula resuelta en primera llamada
+    	if(OPCION_EJECUCION == 0){
+    		for(j = 0; j < NUM_FILAS; j++){
+				for(k = 0; k < NUM_COLUMNAS; k++){
+					cuadricula_verificar[j][k] = cuadricula[j][k];
+				}
+			}
+    	}
+    	num_incorrectas += cuadricula_candidatos_verificar(cuadricula_verificar,cuadricula);
+    	celdas_vacias = sudoku_candidatos_init_arm(cuadricula);
+    	num_incorrectas += cuadricula_candidatos_verificar(cuadricula_verificar,cuadricula);
+    	OPCION_EJECUCION++;
     }
-    /* calcula lista de candidatos, versión C */
-
-
-
 
     /* verificar que la lista de candidatos calculada es correcta */
     /* cuadricula_candidatos_verificar(...) */
