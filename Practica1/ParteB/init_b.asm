@@ -53,6 +53,7 @@ Reset_Handler:
 ##############################################################################
 		#B		arm			//Prueba ARM
 		B		c			//Prueba C
+
 c:
         LDR     r0, =cuadricula  /*  puntero a la @ inicial de la cuadricula */
 
@@ -60,20 +61,26 @@ c:
         ldr         r5, =sudoku9x9
         mov         lr, pc
         bx          r5
-        B			c
+        B			stop
+
+        //Codigo para ejecutar 1000 iteraciones
+        //y medir los tiempos
+        ########################
+        //NO SE VA A EJECUTAR (MEDICION TIEMPO)
+        ########################
 arm:
-        MOV			r1, #250
-        ADD			r1, r1, #250
-        ADD			r1, r1, #250
-        ADD			r1, r1, #250
+        MOV			r2, #250
+        ADD			r2, r2, #250
+        ADD			r2, r2, #250
+        ADD			r2, r2, #250
 
 arm_1:
 
         LDR		r0, =cuadricula	/* Volvemos a obtener direccion cuadricula */
 		BL		sudoku_candidatos_init_arm
 
-		SUB 		r1, r1 ,#1
-		CMP			r1, #0
+		SUB 		r2, r2 ,#1
+		CMP			r2, #0
 		BNE			arm_1
 		B			arm
 stop:
@@ -82,7 +89,7 @@ stop:
 
 #	USING THUMB CODE
 ################################################################################
-.arm		//funcion puente
+		//funcion puente
 
 puente_arm_thumb:
 		#Obtener registro que hemos apilado
@@ -108,7 +115,7 @@ sudoku_candidatos_propagar_thumb:
 		#r1 -> numero fila
 		#r2 -> numero columna
 
-		PUSH	{r0-r6}
+		PUSH	{r1-r6}
 		MOV		r7, r14			//Movemos LR a r7
 
 		MOV		r4, r0			//r4 -> posicion celda inicial
@@ -131,13 +138,13 @@ sudoku_candidatos_propagar_thumb:
 		BL		checkcol_thumb
 		BL		checkreg_thumb
 
-		MOV		r0, #1
-		POP		{r0-r6}
+		MOV		r0, #0
+		POP		{r1-r6}
 		BX		r7
 
 fin_thumb:
-		MOV		r0, #0
-		POP		{r0-r6}
+		MOV		r0, #1
+		POP		{r1-r6}
 		BX		r7
 
 checkfila_thumb:
@@ -295,13 +302,13 @@ end_reg:
 
 sudoku_candidatos_init_arm:
 
-		STMFD   sp!, {r1-r7, LR}
+		STMFD   sp!, {r1-r9, LR}
 
 		MOV		r4, r0
 		# @cuadricula en r0
 		MOV		r1, #0			//IterFila
 		MOV		r2, #0			//IterColumna
-		MOV		r6, #0			//Celdas_vacias
+		MOV		r9, #0			//Celdas_vacias
 		#Cosicas para hacer mov con mas de 1 byte
 		MOV		r3, #0x1f
 		MOV		r3, r3, LSL #8
@@ -330,9 +337,21 @@ sudoku_candidatos_init_arm:
 		MOV		r1, #0			//IterHorizontal = 0
 		MOV		r2, #0			//IterVertical = 0
 
+		LDR		r7, =opcion		//Opcion que indica que tipo de ejecucion queremos (ARM-C, ARM-ARM, ARM-THUMB)
+		LDRH	r8, [r7]
 rows:
+
+# Codigo añadido para ejecutar sudoku_candidatos_propagar
+# en todas las combinaciones posibles
+# (ARM-C, ARM-ARM, ARM-THUMB)
+
+		CMP		r8, #1
+		BLO		c_call
+		BEQ		arm_call
+		BGT		thumb_call
+c_call:
+		//LLAMADA C
 		LDR		r0, =cuadricula //Necesario ya que r0 contiene el return del metodo propagar
-		/*//LLAMADA C
 		MOV		r4, r1
 		MOV		r5, r2
 .extern     sudoku_candidatos_propagar_c
@@ -341,20 +360,22 @@ rows:
         bx          r6
         MOV		r1, r4
         MOV		r2, r5
-		*/
-			//LLAMADA ARM
+		B		return
+
+arm_call:
+		//LLAMADA ARM
 		BL		sudoku_candidatos_propagar_arm
+		B 		return
 
-
-		/*//llamada thumb
+thumb_call:
+		//LLAMADA THUMB
 		ADR		r6, sudoku_candidatos_propagar_thumb
 		ADD		r6, r6, #1
-		ADR		r14, return_thumb
+		ADR		r14, return
 		BX		r6
-		*/
 
-return_thumb:
-		ADD		r6, r6, r0		//Sumamos valor de celdas_vacias
+return:
+		ADD		r9, r9, r0		//Sumamos valor de celdas_vacias
 		ADD		r2, r2, #1
 		CMP		r2, #9
 		BNE		rows			//Iteracion siguiente celda en fila
@@ -364,8 +385,11 @@ return_thumb:
 		MOVLO	r2, #0
 		BLO		rows			//Iteracion nueva fila
 
-		MOV		r0, r6
-		LDMFD SP!, { r1-r7, PC }
+
+		MOV		r0, r9			//Return celdas_vacias
+		ADD		r8, r8, #1		//Modificamos variable opcion en DATA
+		STRH	r8, [r7]
+		LDMFD SP!, { r1-r9, PC }
 
 sudoku_candidatos_propagar_arm:
 		#Obtener registro que hemos apilado
@@ -373,7 +397,7 @@ sudoku_candidatos_propagar_arm:
 		#r1 -> posicion fila
 		#r2 -> posicion columna
 
-		STMFD   sp!, {r4-r7, LR}
+		STMFD   sp!, {r3-r7, LR}
 
 		#Obtenemos direccion elemento a modificar
 
@@ -409,12 +433,12 @@ sudoku_candidatos_propagar_arm:
 
 		# Return 0 celdas_vacias
 		MOV		r0, #0
-		LDMFD 	SP!, { r4-r7, PC }
+		LDMFD 	SP!, { r3-r7, PC }
 
 		# Return 1 celdas_vacias
 fin_propagar_1:
 		MOV		r0, #1
-		LDMFD 	SP!, { r4-r7, PC }
+		LDMFD 	SP!, { r3-r7, PC }
 
 
 ################################################################################
@@ -561,6 +585,9 @@ cuadricula:
     .hword   0x0000,0x8007,0x0000,0x8005,0x0000,0x8009,0x8002,0x8006,0x0000,0,0,0,0,0,0,0
     .hword   0x8006,0x0000,0x0000,0x0000,0x8008,0x0000,0x0000,0x0000,0x0000,0,0,0,0,0,0,0
     .hword   0x0000,0x0000,0x0000,0x0000,0x0000,0x8002,0x0000,0x0000,0x8001,0,0,0,0,0,0,0
+
+opcion:
+	.hword	0
 
 .end
 #        END
