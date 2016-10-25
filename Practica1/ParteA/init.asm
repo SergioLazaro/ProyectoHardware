@@ -33,10 +33,10 @@ start:
 Reset_Handler:
 #
         LDR     sp,=STACK       /*  set up stack pointer (r13) */
-# colocamos los par·metros para la llamada a la primera funciÛn
+# colocamos los par√°metros para la llamada a la primera funci√≥n
         LDR     r0, =src        /*  r0 = pointer to source block */
 # guardamos r0 en r4 porque al llamar a las funciones podemos perder su valor
-# asÌ lo podremos restaurar sin acceder a memoria
+# as√≠ lo podremos restaurar sin acceder a memoria
         MOV     r4, r0
         LDR     r1, =dst1       /*  r1 = pointer to destination block 1 */
 
@@ -47,10 +47,10 @@ Reset_Handler:
 #
 # PART 2: USING THUMB CODE
 #
-# colocamos los par·metros para la llamada a la segunda funciÛn
+# colocamos los par√°metros para la llamada a la segunda funci√≥n
 # porque ARM_copy_10 los ha podido eliminar
-# IMPORTANTE: si queremos tener un cÛdigo modular,
-# debemos volver a apilar los par·metros a pesar de que en teorÌa
+# IMPORTANTE: si queremos tener un c√≥digo modular,
+# debemos volver a apilar los par√°metros a pesar de que en teor√≠a
 # alguno pueda estar ya en la pila
         MOV     r0, r4           /* r0 = pointer to source block */
         LDR     r1, =dst2        /* r1 = pointer to destination block 1 */
@@ -62,7 +62,7 @@ return:
 #
 # PART 3: USING A .C FUNCTION
 #
-# ponemos los par·metros de nuevo
+# ponemos los par√°metros de nuevo
         MOV     r0, r4           /* r0 = pointer to source block */
         LDR     r1, =dst3        /* r1 = pointer to destination block 1 */
 # function __c_copy is in copy.c
@@ -80,18 +80,18 @@ stop:
         B       stop        /*  end of program */
 
 ################################################################################
-# FunciÛn ARM:
-# copia 10 palabras de la direcciÛn indicada en r0 a la indicada por r1
-# deberÌa crear un marco de pila con la misma estructura que en el resto de llamadas a funciones
-# pero como es un nodo hoja (no llama a ninguna funciÛn) vamos a hacer un marco simplificado:
-# sÛlo guardamos los registros que utiliza y que no tiene permiso para alterar
+# Funci√≥n ARM:
+# copia 10 palabras de la direcci√≥n indicada en r0 a la indicada por r1
+# deber√≠a crear un marco de pila con la misma estructura que en el resto de llamadas a funciones
+# pero como es un nodo hoja (no llama a ninguna funci√≥n) vamos a hacer un marco simplificado:
+# s√≥lo guardamos los registros que utiliza y que no tiene permiso para alterar
 ################################################################################
 ARM_copy_10:
         #  saves the working registers
         # Recordad que puede modificar r0, r1, r2 y r3 sin guardarlos previamente
         STMFD   sp!, {r4-r11}
 
-        # Poned el cÛdigo aquÌ: sÛlo hacen falta dos instrucciones
+        # Poned el c√≥digo aqu√≠: s√≥lo hacen falta dos instrucciones
 		LDM		r0, {r2-r11}	/*Load todos los numeros de src en adelante.*/
 								/*Se guardan de r2-r11*/
 		STM		r1, {r2-r11}	/*Store de los registro r2-r11 a partir de*/
@@ -106,17 +106,17 @@ ARM_copy_10:
         BX      r14
 
 ################################################################################
-# FunciÛn thumb:
-# copia 10 palabras de la direcciÛn indicada en r0 a la indicada por r1
+# Funci√≥n thumb:
+# copia 10 palabras de la direcci√≥n indicada en r0 a la indicada por r1
 # De nuevo, al ser un nodo hoja hacemos un marco simplificado:
-# sÛlo los registros que toca y debe restaurar
+# s√≥lo los registros que toca y debe restaurar
 ################################################################################
 /* indicates that we are using the thumb instruction set */
 .thumb
 th_copy_10:
         PUSH    {r4-r7}
 
-        # poned aquÌ el cÛdigo,
+        # poned aqu√≠ el c√≥digo,
         # como no podemos leer y escribir 10 palabras de golpe lo haremos en dos veces
 
 		# Metemos {!} para actualizar r0 en el load de cada elemento contenido a partir de src.
@@ -126,9 +126,9 @@ th_copy_10:
 		# Store de los 5 primeros numeros
 		STM		r1!, {r3-r7}
 		# Load de los ultimos 5 numeros
-		LDM		r0, {r3-r7}
+		LDM		r0!, {r3-r7}
 		# Store de los ultimos 5 numeros
-		STM		r1, {r3-r7}
+		STM		r1!, {r3-r7}
 
         POP     {r4-r7} /* restores the registers */
         BX      r14     /* this is the return instrucction */
