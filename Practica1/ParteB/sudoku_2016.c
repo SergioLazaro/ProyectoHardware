@@ -1,3 +1,10 @@
+/*
+ * Autores:
+ * Oscar Leon Barbed Perez 666137
+ * Sergio Lazaro Magdalena 556030
+ *
+ * */
+
 #include "sudoku_2016.h"
 
 
@@ -66,7 +73,9 @@ static inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_C
 /* *****************************************************************************
  * propaga el valor de una determinada celda
  * para actualizar las listas de candidatos
- * de las celdas en su su fila, columna y región */
+ * de las celdas en su su fila, columna y región
+ * */
+
 int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
                              uint8_t fila, uint8_t columna)
 {
@@ -94,7 +103,9 @@ int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
 /* *****************************************************************************
  * calcula todas las listas de candidatos (9x9)
  * necesario tras borrar o cambiar un valor (listas corrompidas)
- * retorna el numero de celdas vacias */
+ * retorna el numero de celdas vacias
+ * */
+
 int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 {
 
@@ -103,29 +114,30 @@ int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 	int i, j, celdas_vacias;
 
 	celdas_vacias = 0;
-
+	/* inicializa lista de candidatos */
 	for(i=0; i<NUM_FILAS; i++){
 		for(j=0; j<NUM_FILAS; j++){
-			/* inicializa lista de candidatos */
-			cuadricula[i][j] = cuadricula[i][j] | 0x1FF0;
+			cuadricula[i][j] = cuadricula[i][j] | 0x1FF0;		//Todos los candidatos a 1
 		}
 	}
-	if(OPCION_EJECUCION == 0){		//C
+
+	/* Ejecucion candidatos propagar. Depende de OPCION_EJECUCION. */
+	if(OPCION_EJECUCION == 0){
 		for(i=0; i<NUM_FILAS; i++){
 			for(j=0; j<NUM_FILAS; j++){
-				celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j);
+				celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j);	//C
 			}
 		}
-	}else if(OPCION_EJECUCION == 1){		//ARM
+	}else if(OPCION_EJECUCION == 1){
 		for(i=0; i<NUM_FILAS; i++){
 			for(j=0; j<NUM_FILAS; j++){
-				celdas_vacias += sudoku_candidatos_propagar_arm(cuadricula, i, j);
+				celdas_vacias += sudoku_candidatos_propagar_arm(cuadricula, i, j); //ARM
 			}
 		}
-	}else{		//THUMB
+	}else{
 		for(i=0; i<NUM_FILAS; i++){
 			for(j=0; j<NUM_FILAS; j++){
-				celdas_vacias += puente_arm_thumb(cuadricula, i, j);
+				celdas_vacias += puente_arm_thumb(cuadricula, i, j); //THUMB
 			}
 		}
 	}
@@ -138,8 +150,8 @@ int cuadricula_candidatos_verificar(CELDA cuadricula_verificar[NUM_FILAS][NUM_CO
 		CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]){
 	int i, j, check;
 	check = 0;
-	while(i < NUM_FILAS && check){
-		while(j < NUM_FILAS && check){
+	while(i < NUM_FILAS && check){	//En caso de fallo, evitamos seguir iterando
+		while(j < NUM_FILAS && check){	//En caso de fallo, evitamos seguir iterando
 			if(cuadricula_verificar[i][j] != cuadricula[i][j]){
 				check = 1;
 			}
@@ -152,6 +164,7 @@ int cuadricula_candidatos_verificar(CELDA cuadricula_verificar[NUM_FILAS][NUM_CO
 	return check;
 }
 
+/* Declaracion funciones externas a C */
 
 extern int sudoku_candidatos_init_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
 extern int sudoku_candidatos_propagar_arm(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],uint8_t fila, uint8_t columna);
@@ -169,25 +182,35 @@ sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready)
 {
     int celdas_vacias, i, j, k, num_incorrectas;     //numero de celdas aun vacias
     CELDA cuadricula_verificar[NUM_FILAS][NUM_COLUMNAS];
-    for(i = 0; i < 3; i++){
+
+    //Iteramos 3 veces sudoku_candidatos_init_c y sudoku_candidatos_init_arm
+
+    for(i = 0; i < 3; i++)
+    {
     	celdas_vacias = sudoku_candidatos_init_c(cuadricula);
+
     	//Codigo para obtener cuadricula resuelta en primera llamada
-    	if(OPCION_EJECUCION == 0){
+    	if(OPCION_EJECUCION == 0){	//Breakpoint aqui
     		for(j = 0; j < NUM_FILAS; j++){
 				for(k = 0; k < NUM_COLUMNAS; k++){
 					cuadricula_verificar[j][k] = cuadricula[j][k];
 				}
 			}
     	}
+
+    	//Verificamos si la cuadricula obtenida con C es correcta
     	num_incorrectas += cuadricula_candidatos_verificar(cuadricula_verificar,cuadricula);
+
+    	//Ejecucion codigo ARM. Se gestiona dentro las llamadas a las distintas posibilidades
+    	//con una variable global similar a la empleada en C.
     	celdas_vacias = sudoku_candidatos_init_arm(cuadricula);
+
+    	//Verificamos si la cuadricula obtenida con ARM es correcta
+    	//Breakpoint aqui
     	num_incorrectas += cuadricula_candidatos_verificar(cuadricula_verificar,cuadricula);
-    	OPCION_EJECUCION++;
+
+    	OPCION_EJECUCION++;	//Modificamos variable para proxima combinacion
     }
 
-    /* verificar que la lista de candidatos calculada es correcta */
-    /* cuadricula_candidatos_verificar(...) */
-
-    /* repetir para otras versiones (C optimizado, ARM, THUMB) */
 }
 
