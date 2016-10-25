@@ -1,5 +1,10 @@
 .text
-
+/*
+ * Autores:
+ * Oscar Leon Barbed Perez 666137
+ * Sergio Lazaro Magdalena 556030
+ *
+ */
 #        ENTRY                  /*  mark the first instruction to call */
 .global start
 
@@ -351,7 +356,7 @@ rows:
 		BGT		thumb_call
 c_call:
 		//LLAMADA C
-		LDR		r0, =cuadricula //Necesario ya que r0 contiene el return del metodo propagar
+
 		MOV		r4, r1
 		MOV		r5, r2
 .extern     sudoku_candidatos_propagar_c
@@ -376,6 +381,7 @@ thumb_call:
 
 return:
 		ADD		r9, r9, r0		//Sumamos valor de celdas_vacias
+		LDR		r0, =cuadricula //Necesario ya que r0 contiene el return del metodo propagar (celdas_vacias)
 		ADD		r2, r2, #1
 		CMP		r2, #9
 		BNE		rows			//Iteracion siguiente celda en fila
@@ -449,7 +455,6 @@ checkfila:
 		#r1 -> numero fila
 		#r2 -> numero columna
 		#r3 -> valor
-		#r4 -> mascara para AND
 
 		STMFD   sp!, {r0-r7, LR}
 
@@ -483,7 +488,6 @@ checkcolum:
 		#r1 -> numero fila
 		#r2 -> numero columna
 		#r3 -> valor
-		#r4 -> mascara para AND
 
 		STMFD   sp!, {r0-r7, LR}
 
@@ -516,7 +520,6 @@ checkreg:
 		#r1 -> numero fila
 		#r2 -> numero columna
 		#r3 -> valor
-		#r4 -> mascara para AND
 		STMFD   sp!, {r0-r7, LR}
 
 		#Creamos mascara para modificar bit
