@@ -104,7 +104,8 @@ puente_arm_thumb:
 		STMDB SP!, {r6,FP,IP,LR,PC}
 		SUB FP, IP, #4
 
-		ADR		r6, sudoku_candidatos_propagar_thumb
+		.extern sudoku_candidatos_propagar_thumb
+		LDR		r6, =sudoku_candidatos_propagar_thumb
 		ADD		r6, r6, #1
 		ADR		r14, return_puente
 		BX		r6
@@ -193,7 +194,8 @@ arm_call:
 
 thumb_call:
 		//LLAMADA THUMB
-		ADR		r6, sudoku_candidatos_propagar_thumb
+		.extern sudoku_candidatos_propagar_thumb
+		LDR		r6, =sudoku_candidatos_propagar_thumb
 		ADD		r6, r6, #1
 		ADR		r14, return
 		BX		r6

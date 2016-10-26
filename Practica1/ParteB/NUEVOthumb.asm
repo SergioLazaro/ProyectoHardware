@@ -18,7 +18,7 @@ sudoku_candidatos_propagar_thumb:
 		#r2 -> numero columna
 
 		MOV 	IP, SP
-		STMDB 	SP!, {r4-r7,FP,IP,LR,PC}
+		PUSH 	{r4-r7,FP,IP,LR,PC}
 		SUB 	FP, IP, #4
 
 		MOV		r7, r14			//Movemos LR a r7
@@ -58,12 +58,12 @@ sudoku_candidatos_propagar_thumb:
 		BL		checkreg_thumb
 
 		MOV		r0, #0
-		LDMDB	FP, {r4-r7,FP,SP,PC}
+		POP		{r4-r7,FP,SP,PC}
 		BX		r7
 
 fin_thumb:
 		MOV		r0, #1
-		LDMDB	FP, {r4-r7,FP,SP,PC}
+		POP		{r4-r7,FP,SP,PC}
 		BX		r7
 
 checkfila_thumb:
