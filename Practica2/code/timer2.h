@@ -15,6 +15,6 @@ int switch_leds2;
 /*--- declaracion de funciones visibles timer2 ---*/
 void timer2_inicializar(void);
 void timer2_empezar(void);
-float timer2_leer(void);
+long timer2_leer(void);
 
 #endif /* _TIMER_H_ */
