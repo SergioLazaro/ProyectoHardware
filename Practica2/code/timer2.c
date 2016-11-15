@@ -12,7 +12,7 @@
 
 /*--- variables globales ---*/
 int timer2_num_int = 0;
-int switch_leds2 = 0;
+//int switch_leds2 = 0;
 
 /* declaración de función que es rutina de servicio de interrupción
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
@@ -38,23 +38,23 @@ void timer2_inicializar(void)
 	rINTMOD = 0x0; // Configura las linas como de tipo IRQ
 	rINTCON = 0x1; // Habilita int. vectorizadas y la linea IRQ (FIQ no)
 
-	// Enmascara todas las lineas excepto Timer2, Timer0 y el bit global 
+	// Enmascara todas las lineas excepto Timer2, Timer0 y el bit global
 	// (bits 26 y 13, BIT_GLOBAL y BIT_TIMER0 están definidos en 44b.h)
 	// bit = 0 -> interrupcion disponible
 	// bit = 1 -> interrupcion enmascarada
-	rINTMSK = ~(BIT_GLOBAL | BIT_TIMER2 | BIT_TIMER0); 
+	rINTMSK = ~(BIT_GLOBAL | BIT_TIMER2 | BIT_TIMER0);
 	/* Establece la rutina de servicio para TIMER0 */
 	pISR_TIMER2 = (unsigned) timer2_ISR;
 
 	/* Configura el Timer2 */
 	//bits[15:8]
 	rTCFG0 = (rTCFG0 & 0xFFFF00FF); // ajusta el preescalado
-	
+
 	//bits [11:8]
 	//selecciona la entrada del mux que proporciona el reloj. La 00 corresponde a un divisor de 1/2.
 	rTCFG1 = (rTCFG1 & 0xFFFFF0FF);
 	rTCNTB2 = 65535;// valor inicial de cuenta (la cuenta es descendente)
-	rTCMPB2 = 12800;// valor de comparación
+	rTCMPB2 = 0;// valor de comparación
 	/* establecer update=manual (bit 1) + inverter=on
 	(¿? será inverter off un cero en el bit 2 pone el inverter en off)*/
 	// update manual y autoreload.
@@ -63,7 +63,7 @@ void timer2_inicializar(void)
 	//bit 14 -> output inverte on/off
 	//bit 13 -> manual update on/off
 	//bit 12 -> start/stop
-	rTCON = rTCON | 0xA000;
+	rTCON = rTCON | 0x2000;
 	/* iniciar timer (bit 0) con auto-reload (bit 3) -> 1001 */
 	rTCON = rTCON | 0x9000;
 }
@@ -71,16 +71,15 @@ void timer2_inicializar(void)
 void timer2_empezar()
 {
 	timer2_num_int = 0;
-	rTCNTO2 = 0;
+	rTCNTO2 = rTCNTB2;
 	//Volvemos a poner update manual para modificar
 	rTCON = rTCON | 0x2000;
 	//Volvemos al valor que nos interesa
-	rTCON = rTCON | 0x9000;
-	
+	rTCON = rTCON & 0x9FFF;
+
 
 }
 long timer2_leer()
 {
-	return (timer2_num_int*(rTCNTB2 - rTCMPB2) + (rTCNTB2 - rTCNTO2));
+	return ((timer2_num_int*(rTCNTB2 - rTCMPB2) + (rTCNTB2 - rTCNTO2))) / 32;	//microsegundos
 }
-

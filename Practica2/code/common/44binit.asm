@@ -66,7 +66,7 @@
     .extern       Image_ZI_Limit    /* to zero initialise */       
 
     .extern Main			/* The main entry of mon program */
-    
+    .extern init			/* Salto Init*/
     .text
 
     ENTRY:
@@ -299,7 +299,7 @@ F2:
 	BIC	r0, r0, #NOINT /* enable interrupt */
 	MSR	CPSR_cxsf, r0
 	/* jump to main() */
-   	BL	Main
+   	BL	init
    	B   .	    
 
 #;****************************************************

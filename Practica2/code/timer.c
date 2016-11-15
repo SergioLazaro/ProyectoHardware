@@ -11,7 +11,7 @@
 #include "44blib.h"
 
 /*--- variables globales ---*/
-//int switch_leds = 0;
+int switch_leds = 0;
 
 /* declaración de función que es rutina de servicio de interrupción
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
@@ -20,7 +20,7 @@ void timer_ISR(void) __attribute__((interrupt("IRQ")));
 /*--- codigo de las funciones ---*/
 void timer_ISR(void)
 {
-	//switch_leds = 1;
+	switch_leds = 0;
 
 	/* borrar bit en I_ISPC para desactivar la solicitud de interrupción*/
 	rI_ISPC |= BIT_TIMER0; // BIT_TIMER0 está definido en 44b.h y pone un uno en el bit 13 que correponde al Timer0

@@ -17,4 +17,4 @@ void timer2_inicializar(void);
 void timer2_empezar(void);
 long timer2_leer(void);
 
-#endif /* _TIMER_H_ */
+#endif /* _TIMER2_H_ */
