@@ -19,8 +19,6 @@ sudoku_candidatos_propagar_thumb:
 
 		PUSH 	{r4-r7, LR}
 
-		MOV		r7, r14			//Movemos LR a r7
-
 		MOV		r4, r0			//r4 -> posicion celda inicial
 
 		#Obtenemos celda de interes
