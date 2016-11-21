@@ -11,36 +11,31 @@
 #include "44blib.h"
 #include "44b.h"
 #include "def.h"
+#include "timer4.h"
 
-/*--- variables globales del m骴ulo ---*/
-/* int_count la utilizamos para sacar un n鷐ero por el 8led.
-  Cuando se pulsa un bot髇 sumamos y con el otro restamos.  veces hay rebotes! */
-static unsigned int int_count = 0;
+/*--- variables globales del m贸dulo ---*/
+/* int_count la utilizamos para sacar un n煤mero por el 8led.
+  Cuando se pulsa un bot贸n sumamos y con el otro restamos. 隆A veces hay rebotes! */
+int int_count = 0;
+int which_int = 0;
 
-/* declaraci髇 de funci髇 que es rutina de servicio de interrupci髇
+/* declaraci贸n de funci贸n que es rutina de servicio de interrupci贸n
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
 void Eint4567_ISR(void) __attribute__((interrupt("IRQ")));
 
 /*--- codigo de funciones ---*/
 void Eint4567_ISR(void)
 {
+
+
 	/* Identificar la interrupcion (hay dos pulsadores)*/
-	int which_int = rEXTINTPND;
-	switch (which_int)
-	{
-		case 4:
-			int_count++; // incrementamos el contador
-			D8Led_symbol(which_int);
-			break;
-		case 8:
-			int_count--; // decrementamos el contador
-			D8Led_symbol(which_int);
-			break;
-		default:
-			break;
-	}
-	// }
-	D8Led_symbol(int_count & 0x000f); // sacamos el valor por pantalla (m骴ulo 16)
+	which_int = rEXTINTPND;
+
+	rINTMSK |= BIT_EINT4567;
+	//iniciar timer aqui
+	timer4_empezar();
+
+	//D8Led_symbol(int_count & 0x000f); // sacamos el valor por pantalla (m贸dulo 16)
 
 	/* Finalizar ISR */
 	rEXTINTPND = 0xf;				// borra los bits en EXTINTPND
@@ -49,12 +44,12 @@ void Eint4567_ISR(void)
 
 void Eint4567_init(void)
 {
-	/* Configuracion del controlador de interrupciones. Estos registros est醤 definidos en 44b.h */
+	/* Configuracion del controlador de interrupciones. Estos registros est谩n definidos en 44b.h */
 	rI_ISPC    = 0x3ffffff;	// Borra INTPND escribiendo 1s en I_ISPC
 	rEXTINTPND = 0xf;       // Borra EXTINTPND escribiendo 1s en el propio registro
 	rINTMOD    = 0x0;		// Configura las linas como de tipo IRQ
 	rINTCON    = 0x1;	    // Habilita int. vectorizadas y la linea IRQ (FIQ no)
-	rINTMSK    = ~(BIT_GLOBAL | BIT_EINT4567 | BIT_TIMER2 | BIT_TIMER0); // Enmascara todas las lineas excepto eint4567, el bit global y el timer0
+	rINTMSK    = ~(BIT_GLOBAL | BIT_EINT4567 | BIT_TIMER4 | BIT_TIMER2 | BIT_TIMER0); // Enmascara todas las lineas excepto eint4567, el bit global y el timer0
 
 	/* Establece la rutina de servicio para Eint4567 */
 	pISR_EINT4567 = (int) Eint4567_ISR;
@@ -67,4 +62,9 @@ void Eint4567_init(void)
 	/* Por precaucion, se vuelven a borrar los bits de INTPND y EXTINTPND */
 	rI_ISPC    |= (BIT_EINT4567);
 	rEXTINTPND = 0xf;
+}
+
+void Eint4567_desactivar(void)
+{
+	rINTMSK &= 0xFFDFFFFF;
 }
