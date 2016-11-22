@@ -101,7 +101,7 @@ sudoku_candidatos_init_arm:
 		LDRH	r8, [r7]
 rows:
 
-# Codigo añadido para ejecutar sudoku_candidatos_propagar
+# Codigo aÃ±adido para ejecutar sudoku_candidatos_propagar
 # en todas las combinaciones posibles
 # (ARM-C, ARM-ARM, ARM-THUMB)
 		B			arm_call
