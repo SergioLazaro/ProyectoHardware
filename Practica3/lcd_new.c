@@ -640,11 +640,11 @@ void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int 
 void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry, int zoom)
 {
 
-	int i, value, contx, conty;
+	int i, value, contx, conty, tamx, tamy;
 	contx = 1;
 	conty = 1;
 	for(i=0; i<NUM_FILAS; i++){
-		value = celda & ~(1 << ((i + 3));
+		value = celda & ~(1 << ((i + 3)); //Leon: Creo que esto no lo hacía bien, porque los imprimía todos.
 		if(value > 0)
 		{
 			if(i == 3 || i == 6)	//Reset x al final
@@ -657,7 +657,11 @@ void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry,
 				Lcd_DspAscII6x8(posx + (contx * incrx), posy + (conty * incry), BLACK, get_string_from_integer(i));
 			}
 			else{	//No hay zoom
-				Lcd_print_candidato_actual(posx + contx*(incrx / 7), posy + conty*(incry / 7) , (incrx / 7), (incry/7));
+				tamx = incrx/5;
+				if(incrx%5 != 0) tamx++;
+				tamy = incry/5;
+				if(incry%5 != 0) tamy++;
+				Lcd_print_candidato_actual(posx + contx*tamx, posy + conty*tamy , tamx, tamy);
 			}
 			
 		}
@@ -668,8 +672,8 @@ void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry,
 void Lcd_print_candidato_actual(int posx, int posy, int incrx, int incry)
 {
 	int i;
-	for (i = 0; i < incry + 2; i++) {
-		Lcd_Draw_HLine(posx, posx + incrx + 4, posy + i, BLACK, 1);
+	for (i = 0; i < incry - 2; i++) { //Reajustar!
+		Lcd_Draw_HLine(posx, posx + incrx - 2, posy + i, BLACK, 1);
 	}
 }
 
