@@ -11,13 +11,15 @@
 #include "lcd.h"
 #include "uart.h"
 
-void user_irq1(void) __attribute__((interrupt("IRQ")));
+void TSInt(void) __attribute__((interrupt("IRQ")));
+
+/*--- codigo de las funciones ---*/
 
 void TS_Test(void)
 {
-		Lcd_TC();
+		//Lcd_TC();
 		TS_init();
-		Check_Sel();
+		//Check_Sel();
 			
 		//Uart_Printf("\n Pixel: 320 X 240. Coordinate Rang in: (0,0) - (320,240)\n");
 		//Uart_Printf("\nLCD TouchScreen Test Example(please touch LCD screen)\n");
@@ -79,8 +81,19 @@ void TSInt(void)
 		tmp = 320*(tmp - Xmin)/(Xmax - Xmin);   // X - position
 		//Uart_Printf("X-Posion[AIN1] is %04d   ", tmp);
 			
-		Pt[5] = 240*(Pt[5] - Xmin)/(Ymax - Ymin);
+		Pt[5] = 240*(Pt[5] - Ymin)/(Ymax - Ymin);
 		//Uart_Printf("  Y-Posion[AIN0] is %04d\n", Pt[5]);
+
+		activar_zoom = 1;
+		//Fix x
+		x_elegida = tmp;
+		if(x_elegida < 0) x_elegida = 0;
+		else if(x_elegida > 320) x_elegida = 320;
+
+		//Fix y
+		y_elegida = 240 - Pt[5];
+		if(y_elegida < 0) y_elegida = 0;
+		else if(y_elegida > 240) y_elegida = 240;
       }
 
     if(CheckTSP)
@@ -90,7 +103,7 @@ void TSInt(void)
 	rPDATE = 0xb8;                  // should be enabled	
 	DelayTime(3000);                // delay to set up the next channel	
 
-    rI_ISPC = BIT_EINT2;            // clear pending_bit
+    rI_ISPC |= BIT_EINT2;            // clear pending_bit
 }
 			
 /*********************************************************************************************
@@ -107,7 +120,7 @@ void TS_init(void)
     /* enable interrupt */
 	rINTMOD=0x0;
 	rINTCON=0x1;
-    rI_ISPC |= BIT_EINT2;            // clear pending_bit
+    //rI_ISPC |= BIT_EINT2;            // clear pending_bit
 	
 	// TSPX(GPE4_Q4(-)) TSPY(GPE5_Q3(-)) TSMY(GPE6_Q2(-)) TSMX(GPE7_Q1(+)) 
 	//          1               1                0                 1
@@ -117,13 +130,23 @@ void TS_init(void)
     
     rEXTINT |= 0x200;                // falling edge trigger
     //pISR_EINT2 = (int) user_irq1;       // set interrupt handler
-    //pISR_EINT2=(unsigned) user_irq1;
+    pISR_EINT2=(unsigned) TSInt;
 
     rCLKCON = 0x7ff8;                // enable clock
     rADCPSR = 0x1;//0x4;             // A/D prescaler
-    rINTMSK =~(BIT_GLOBAL|BIT_EINT2);
+    rINTMSK    = ~(BIT_GLOBAL | BIT_EINT2 | BIT_EINT4567 | BIT_TIMER4 | BIT_TIMER2 | BIT_TIMER0);
 
     oneTouch = 0;
+    Xmax = 750;    Xmin = 200;
+    Ymax = 800;    Ymin = 290;
+
+    /*	DEFAULT
+    Xmax = 750;    Xmin = 200;
+    Ymax = 620;    Ymin = 120;
+    */
+    activar_zoom = 0;
+    x_elegida = 0;
+    y_elegida = 0;
 }
 /*********************************************************************************************
 * name:		TS_close

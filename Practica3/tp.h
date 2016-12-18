@@ -19,8 +19,9 @@ unsigned int  Xmax;
 unsigned int  Ymax;
 unsigned int  Xmin;
 unsigned int  Ymin;
-
-extern void user_irq1(void);
+unsigned int x_elegida;
+unsigned int y_elegida;
+unsigned int activar_zoom;
 
 void TS_Test(void);
 void TS_init(void);
@@ -29,3 +30,4 @@ void TS_close(void);
 void Lcd_TC(void);
 void DesignREC(ULONG tx, ULONG ty);
 void Check_Sel(void);
+//int get_activar_zoom(void);

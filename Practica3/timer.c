@@ -9,9 +9,10 @@
 #include "timer.h"
 #include "44b.h"
 #include "44blib.h"
+#include "lcd.h"
 
 /*--- variables globales ---*/
-int switch_leds = 0;
+
 
 /* declaración de función que es rutina de servicio de interrupción
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
@@ -20,8 +21,7 @@ void timer_ISR(void) __attribute__((interrupt("IRQ")));
 /*--- codigo de las funciones ---*/
 void timer_ISR(void)
 {
-	switch_leds = 0;
-
+	timer0_num_int++;
 	/* borrar bit en I_ISPC para desactivar la solicitud de interrupción*/
 	rI_ISPC |= BIT_TIMER0; // BIT_TIMER0 está definido en 44b.h y pone un uno en el bit 13 que correponde al Timer0
 }
@@ -41,10 +41,27 @@ void timer_init(void)
 	rTCFG1 = 0x0; // selecciona la entrada del mux que proporciona el reloj. La 00 corresponde a un divisor de 1/2.
 	rTCNTB0 = 65535;// valor inicial de cuenta (la cuenta es descendente)
 
-	rTCMPB0 = 12800;// valor de comparación
+	rTCMPB0 = 0;// valor de comparación
 	/* establecer update=manual (bit 1) + inverter=on (¿? será inverter off un cero en el bit 2 pone el inverter en off)*/
 	rTCON = 0x2;
 	/* iniciar timer (bit 0) con auto-reload (bit 3)*/
 	rTCON = 0x09;
+
 }
+
+void timer0_empezar()
+{
+	timer0_num_int = 0;
+	rTCNTO0 = rTCNTB0;
+	//Volvemos a poner update manual para modificar
+	rTCON = rTCON | 0x2;
+	//Volvemos al valor que nos interesa
+	rTCON = rTCON & 0x9;
+
+}
+int timer0_leer()
+{
+	return ((timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 32000;	//microsegundos
+}
+
 

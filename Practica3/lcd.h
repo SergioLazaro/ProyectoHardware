@@ -137,10 +137,16 @@ void Lcd_pantalla_inicial(void);
 void LCD_display_centrado(int y, int color, char *string);
 void Lcd_print_sudoku(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
 void Lcd_print_indexes(int x, int y, int incrx, int incry);
-void Lcd_print_celdas(int x, int y, int xmax, int ymax, int incrx, int incry);
+void Lcd_print_indexes_zoom(int x, int y, int incrx, int incry, int incrindex_x, int incrindex_y);
+void Lcd_print_celdas(int x, int y, int xmax, int ymax, int incrx, int incry, int iteraciones, int modificarGrosor);
 void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y, int incrx, int incry);
-void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry);
+void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry, int zoom);
+void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y);
+void Lcd_print_info(void);
+int comprobar_region_x(int x);
+int comprobar_region_y(int y);
 char* get_string_from_integer(int num);
+void Lcd_print_tiempo_total(int num);
 
 
 #ifdef __cplusplus

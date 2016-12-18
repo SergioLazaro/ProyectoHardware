@@ -11,7 +11,6 @@
 #include "44b.h"
 #include "44blib.h"
 
-
 /*--- macro define ---*/
 #define DMA_Byte  (0)
 #define DMA_HW    (1)
@@ -345,6 +344,56 @@ void Lcd_DspAscII6x8(INT16U usX0, INT16U usY0, INT8U ForeColor, INT8U* pucChar) 
 		pucChar++;
 	}
 }
+/*********************************************************************************************
+* name:		Lcd_DspAscII8x16()
+* func:		display 8x16 ASCII character string
+* para:		usX0,usY0 -- ASCII character string's start point coordinate
+*			ForeColor -- appointed color value
+*			pucChar   -- ASCII character string
+* ret:		none
+* modify:
+* comment:
+*********************************************************************************************/
+void Lcd_DspAscII8x16(INT16U x0, INT16U y0, INT8U ForeColor, INT8U * s)
+{
+	INT16 i,j,k,x,y,xx;
+	INT8U qm;
+	INT32U ulOffset;
+	INT8 ywbuf[16],temp[2];
+
+	for( i = 0; i < strlen((const char*)s); i++ )
+	{
+		if( (INT8U)*(s+i) >= 161 )
+		{
+			temp[0] = *(s + i);
+			temp[1] = '\0';
+			return;
+		}
+		else
+		{
+			qm = *(s+i);
+			ulOffset = (INT32U)(qm) * 16;		//Here to be changed tomorrow
+			for( j = 0; j < 16; j ++ )
+			{
+				ywbuf[j] = g_auc_Ascii8x16[ulOffset + j];
+            }
+
+            for( y = 0; y < 16; y++ )
+            {
+            	for( x = 0; x < 8; x++ )
+               	{
+                	k = x % 8;
+			    	if( ywbuf[y]  & (0x80 >> k) )
+			       	{
+			       		xx = x0 + x + i*8;
+			       		LCD_PutPixel(xx, y + y0, (INT8U)ForeColor);
+			       	}
+			   	}
+            }
+		}
+	}
+}
+
 
 /*********************************************************************************************
  * name:		ReverseLine()
@@ -430,7 +479,7 @@ void Lcd_Dma_Trans(void) {
  *********************************************************************************************/
 void Lcd_Test(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]) {
 	/* initial LCD controller */
-	Lcd_Init();
+	//Lcd_Init();
 	/* clear screen */
 	Lcd_Clr();
 	Lcd_Active_Clr();
@@ -439,6 +488,115 @@ void Lcd_Test(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]) {
 
 	Lcd_Dma_Trans();
 	Delay(100);
+}
+
+void Lcd_print_info(void) {
+	//Mostramos informacion
+	// - Introducir fila A para salir
+	// - Tiempo de calculo
+	// - Tiempo transcurrido
+	Lcd_DspAscII6x8(0, 0, BLACK, "T. transcurrido: ");
+	Lcd_DspAscII6x8(160, 0, BLACK, "T. calculo: ");
+	Lcd_DspAscII6x8(0, 15, BLACK, "Introducir fila A para salir");
+}
+
+void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y) {
+
+	int index_fila, index_col, i, j, valorCelda;//Indice para posicionar cuadricula
+	int posregx, posregy, maxposregx, maxposregy, incrposregx, incrposregy;
+	CELDA auxCuadricula;
+
+	index_col = comprobar_region_x(x);	//Eje x
+	index_fila = comprobar_region_y(y);	//Eje y
+
+	/* clear screen */
+	Lcd_Clr();
+	Lcd_Active_Clr();
+
+	//Pintar region en grande
+	posregx = 10;
+	posregy = 38;
+	maxposregx = 307;
+	maxposregy = 201;
+	incrposregx = 99;
+	incrposregy = 67;
+
+	/*	Print cuadricula principal */
+	Lcd_Draw_Box_grosor(posregx, posregy, posregx + maxposregx,
+			posregy + maxposregy - 1, BLACK, 2);
+
+	/* Print celdas con 2 porque antes pintamos cuadricula */
+	Lcd_print_celdas(posregx, posregy, maxposregx, maxposregy, incrposregx,
+			incrposregy, 2, 0);
+
+	//Pintar indices region
+	Lcd_print_indexes_zoom(posregx, posregy, incrposregx, incrposregy,
+			index_col, index_fila);
+
+	//Iteracion en region
+	//tmpCuadricula = auxCuadricula;	//trabajar con esta
+	for (i = 0; i < 3; i++)	//columnas
+			{
+		for (j = 0; j < 3; j++)	//filas
+				{
+			//celda leer valor
+			auxCuadricula = cuadricula[index_fila + j][index_col + i];//posicion region click
+			valorCelda = celda_leer_valor(auxCuadricula);
+			if (valorCelda > 0) {
+				//Pintar valor
+				Lcd_DspAscII8x16(posregx + (i * incrposregx + (incrposregx / 2)),
+						posregy + (j * incrposregy + (incrposregy / 2)), BLACK,
+						get_string_from_integer(valorCelda - 1));
+
+			} else {
+				//Pintar candidatos
+				Lcd_print_candidatos(auxCuadricula, posregx + (i * incrposregx), posregy + (j * incrposregy), incrposregx, incrposregy, 1);
+			}
+		}
+	}
+
+	//Mostramos informacion
+	Lcd_print_info();
+
+	Lcd_Dma_Trans();
+}
+
+int comprobar_region_x(int x) {
+	int xreg1, xreg2, xreg3, index;
+
+	xreg1 = 112;
+	xreg2 = 214;
+	xreg3 = 316;
+
+	index = 0;	//region 0
+
+	if (x > xreg1) {
+		if (x > xreg2) {
+			index = 6;	//region 2
+		} else {
+			index = 3;	//region 1
+		}
+	}
+	return index;
+}
+
+int comprobar_region_y(int y) {
+	int yreg1, yreg2, yreg3, index;
+
+	yreg1 = 104;
+	yreg2 = 170;
+	yreg3 = 236;
+
+	index = 0;	//region 0
+
+	if (y > yreg1) {
+		if (y > yreg2) {
+			index = 6;	//region 2
+		} else {
+			index = 3;	//region 1
+		}
+	}
+	return index;
 }
 
 void Lcd_pantalla_inicial(void) {
@@ -472,7 +630,7 @@ void Lcd_print_sudoku(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]) {
 	Lcd_Draw_Box_grosor(x, y, x + xmax, y + ymax, BLACK, 2);//Print cuadricula principal
 
 	//Pintar divisiones de celdas
-	Lcd_print_celdas(x, y, xmax, ymax, incrx, incry);
+	Lcd_print_celdas(x, y, xmax, ymax, incrx, incry, 8, 1);
 
 	//Pintar numeros
 	Lcd_print_indexes(x, y, incrx, incry);
@@ -480,23 +638,18 @@ void Lcd_print_sudoku(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]) {
 	//Pintar elementos
 	Lcd_print_info_celda(cuadricula, x, y, incrx, incry);
 
-
 	//Mostramos informacion
-	// - Introducir fila A para salir
-	// - Tiempo de calculo
-	// - Tiempo transcurrido
-	Lcd_DspAscII6x8(0, 0, BLACK, "T. transcurrido: ");
-	Lcd_DspAscII6x8(160, 0, BLACK, "T. calculo: ");
-	Lcd_DspAscII6x8(0, 15, BLACK, "Introducir fila A para salir");
+	Lcd_print_info();
 }
 
-void Lcd_print_celdas(int x, int y, int xmax, int ymax, int incrx, int incry) {
+void Lcd_print_celdas(int x, int y, int xmax, int ymax, int incrx, int incry,
+		int iteraciones, int modificarGrosor) {
 	int i, grosor;	//Iterador
 
 	i = 0;
 	grosor = 1;
-	for (i = 0; i < 8; i++) {
-		if (i == 2 || i == 5) {
+	for (i = 0; i < iteraciones; i++) {
+		if ((i == 2 || i == 5) && modificarGrosor) {
 			grosor = 2;
 		}
 		Lcd_Draw_VLine(y, y + ymax, x + ((i + 1) * incrx), BLACK, grosor);
@@ -505,13 +658,30 @@ void Lcd_print_celdas(int x, int y, int xmax, int ymax, int incrx, int incry) {
 	}
 }
 
+/* FUNCION PARA LLAMAR CON FUNCION ZOOM SUDOKU*/
+void Lcd_print_indexes_zoom(int x, int y, int incrx, int incry, int incrindex_x,
+		int incrindex_y) {
+	int i, posx, posy, correcty, correctx;
+	posx = x + (incrx / 2);
+	posy = y + (incry / 2);
+	correcty = 5;	//En pixeles
+	correctx = 3;	//En pixeles
+	for (i = 0; i < 3; i++) {
+		Lcd_DspAscII6x8(posx + (i * incrx) - correctx, posy - (incry / 2) - 9,
+				BLACK, get_string_from_integer(i + incrindex_x));	//Eje x
+		Lcd_DspAscII6x8(0, (posy + (i * incry)) - correcty, BLACK,
+				get_string_from_integer(i + incrindex_y));	//Eje y
+	}
+}
+
+/* FUNCION PARA LLAMAR CON PRINT SUDOKU*/
 void Lcd_print_indexes(int x, int y, int incrx, int incry) {
 	int i, posx, posy, correcty, correctx;
 	posx = x + (incrx / 2);
 	posy = y + (incry / 2);
 	correcty = 5;	//En pixeles
 	correctx = 3;	//En pixeles
-	for (i = 0; i < 9; i++) {
+	for (i = 0; i < NUM_FILAS; i++) {
 		Lcd_DspAscII6x8(posx + (i * incrx) - correctx, posy - incry, BLACK,
 				get_string_from_integer(i));	//Eje x
 		Lcd_DspAscII6x8(0, (posy + (i * incry)) - correcty, BLACK,
@@ -519,7 +689,8 @@ void Lcd_print_indexes(int x, int y, int incrx, int incry) {
 	}
 }
 
-void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y, int incrx, int incry) {
+void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x,
+		int y, int incrx, int incry) {
 	int i, j, valorPista, posx, posy, correcty, correctx;
 	posx = x + (incrx / 2);
 	posy = y + (incry / 2);
@@ -528,51 +699,91 @@ void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int 
 	for (i = 0; i < 9; i++) {
 		for (j = 0; j < 9; j++) {
 			if (comprobar_celda_pista(cuadricula[i][j]))	//Print pista
-			{
+					{
 				valorPista = celda_leer_valor(cuadricula[i][j]);
-				Lcd_Draw_Box(x + (i * incrx) + 3, y + (j * incry) + 3, x + (i + 1) * incrx - 2, y + (j + 1) * incry - 2, BLACK);
-				Lcd_DspAscII6x8(posx + (i * incrx) - correctx, posy + (j * incry) - correcty, BLACK,
+				Lcd_Draw_Box(x + (j * incrx) + 3, y + (i * incry) + 3,
+						x + (j + 1) * incrx - 2, y + (i + 1) * incry - 2,
+						BLACK);
+				Lcd_DspAscII8x16(posx + (j * incrx) - correctx,
+						posy + (i * incry) - correcty, BLACK,
 						get_string_from_integer(valorPista - 1));
-			}
-			else{	//Print candidatos
-				Lcd_print_candidatos(cuadricula[i][j], x + (i * incrx), y + (j * incry), incrx, incry);
+			} else {	//Print candidatos
+				Lcd_print_candidatos(cuadricula[i][j], x + (j * incrx),
+						y + (i * incry), incrx, incry, 0);
 			}
 		}
 	}
 }
 
-void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry)
-{
+void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry,
+		int zoom) {
 
-	int i, value, contx, conty;
+	int i, value, contx, conty, tamx, tamy;
 	contx = 1;
 	conty = 1;
-	for(i=0; i<NUM_FILAS; i++){
-		value = celda & ~(1 << ((i-1) + 4));
-		if(value > 0)
+	tamx = incrx / 5;
+	if (incrx % 5 != 0)
+		tamx++;
+	tamy = incry / 5;
+	if (incry % 5 != 0)
+		tamy++;
+	if(zoom)
+	{
+		Lcd_DspAscII6x8(posx + tamx, posy + tamy, BLACK, "Candidatos:");	//Display string
+	}
+	for (i = 0; i < NUM_FILAS; i++) {
+		value = celda & (1 << (i + 4));
+		if (i == 3 || i == 6)	//Reset x al final
 		{
-			if(i == 3 || i == 6)	//Reset x al final
-			{
-				contx = 1;
-				conty++;
-			}
-			Lcd_print_candidato_actual(posx + contx*(incrx / 7), posy + conty*(incry / 7) , (incrx / 7), (incry/7));
-			contx++;
+			contx = 1;
+			conty++;
 		}
+		if (value > 0) {
+			if (zoom)	//Hay zoom
+			{
+				Lcd_DspAscII6x8(posx + ((contx) * tamx) + 5, posy + ((conty+1) * tamy),
+						BLACK, get_string_from_integer(i));
+			} else {	//No hay zoom
+
+				Lcd_print_candidato_actual(posx + contx * tamx,
+						posy + conty * tamy, tamx, tamy);
+			}
+		}
+		contx++;
 	}
 }
 
-void Lcd_print_candidato_actual(int posx, int posy, int incrx, int incry)
-{
+void Lcd_print_candidato_actual(int posx, int posy, int incrx, int incry) {
 	int i;
-	for (i = 0; i < incry + 2; i++) {
-		Lcd_Draw_HLine(posx, posx + incrx + 4, posy + i, BLACK, 1);
+	for (i = 0; i < incry - 2; i++) {
+		Lcd_Draw_HLine(posx, posx + incrx - 2, posy + i, BLACK, 1);
 	}
+}
+
+void Lcd_print_tiempo_total(int num){
+	int auxNum, i;
+	char *value;
+
+	LcdClrRect(100, 0,160, 8, WHITE);	//Clear time
+
+	auxNum = num;
+	value = "";
+	i = 0;
+	//Lcd_DspAscII6x8(148, 0, BLACK, {'s'});
+	while(auxNum > 0){
+		Lcd_DspAscII6x8(140 - i*6, 0, BLACK, get_string_from_integer(auxNum%10 - 1));
+		auxNum = auxNum / 10;
+		i++;
+	}
+	Lcd_Dma_Trans();
 }
 
 char* get_string_from_integer(int num) {
 	char* value;
 	switch (num) {
+	case -1:
+		value = "0";
+		break;
 	case 0:
 		value = "1";
 		break;

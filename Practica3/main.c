@@ -20,9 +20,9 @@
 #include "pila_depuracion.h"
 #include "timer4.h"
 #include "tp.h"
+#include "lcd.h"
 
 /*--- variables globales ---*/
-
 
 CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]__attribute__((aligned(16))) = {
 	{0x8005,0x0000,0x0000,0x8003,0x0000,0x0000,0x0000,0x0000,0x0000,0,0,0,0,0,0,0},
@@ -73,14 +73,29 @@ void iniciar_placa(void)
 	timer4_inicializar();
 
 	Eint4567_init();	// inicializamos los pulsadores. Cada vez que se pulse se verá reflejado en el 8led
+
+	Lcd_Init();
 	Lcd_Test(cuadricula);
-	TS_Test();
-	char yn;
+
+	TS_init();
+	//char yn;
+	int estoy_zoom;
+	estoy_zoom = 0;
 	while(1)
 	 {
-	   yn = Uart_Getch();
-
-	   if(yn == 0x52) TS_Test();// R to reset the XY REC
+	   //yn = Uart_Getch();
+		if(estoy_zoom && activar_zoom){	//Estoy en zoom y salgo
+			Lcd_Test(cuadricula);
+			estoy_zoom = 0;
+			activar_zoom = 0;
+		}
+		else if(activar_zoom){	//Entro en zoom
+			Lcd_zoom_region(cuadricula, x_elegida, y_elegida);
+			activar_zoom = 0;
+			estoy_zoom = 1;
+		}
+		Lcd_print_tiempo_total(timer0_leer());
+	   //if(yn == 0x52) TS_Test();// R to reset the XY REC
 	   //else break;
 	 }
 
