@@ -534,7 +534,6 @@ void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y) {
 			index_col, index_fila);
 
 	//Iteracion en region
-	//tmpCuadricula = auxCuadricula;	//trabajar con esta
 	for (i = 0; i < 3; i++)	//columnas
 			{
 		for (j = 0; j < 3; j++)	//filas
@@ -542,16 +541,26 @@ void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y) {
 			//celda leer valor
 			auxCuadricula = cuadricula[index_fila + j][index_col + i];//posicion region click
 			valorCelda = celda_leer_valor(auxCuadricula);
-			if (valorCelda > 0) {
-				//Pintar valor
-				Lcd_DspAscII8x16(posregx + (i * incrposregx + (incrposregx / 2)),
-						posregy + (j * incrposregy + (incrposregy / 2)), BLACK,
-						get_string_from_integer(valorCelda - 1));
-
-			} else {
-				//Pintar candidatos
-				Lcd_print_candidatos(auxCuadricula, posregx + (i * incrposregx), posregy + (j * incrposregy), incrposregx, incrposregy, 1);
+			if(!comprobar_celda_error){		//Celda normal
+				if (valorCelda > 0) {
+					//Pintar valor
+					Lcd_DspAscII8x16(posregx + (i * incrposregx + (incrposregx / 2)),
+							posregy + (j * incrposregy + (incrposregy / 2)), BLACK,
+							get_string_from_integer(valorCelda - 1));
+				} else {
+					//Pintar candidatos
+					Lcd_print_candidatos(auxCuadricula, posregx + (i * incrposregx), posregy + (j * incrposregy), incrposregx, incrposregy, 1);
+				}
 			}
+			else{	//Error
+				//Clear celda en negro
+				LcdClrRect(posregx + (i * incrposregx), posregy + (j * incrposregy), posregx + ((i + 1) * incrposregx), posregy + ((j + 1) * incrposregy), BLACK);
+				//Print valor en blanco
+				Lcd_DspAscII8x16(posregx + (i * incrposregx + (incrposregx / 2)),
+							posregy + (j * incrposregy + (incrposregy / 2)), WHITE,
+							get_string_from_integer(valorCelda - 1));
+			}
+			
 		}
 	}
 
@@ -691,7 +700,7 @@ void Lcd_print_indexes(int x, int y, int incrx, int incry) {
 
 void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x,
 		int y, int incrx, int incry) {
-	int i, j, valorPista, posx, posy, correcty, correctx;
+	int i, j, valorCelda, posx, posy, correcty, correctx;
 	posx = x + (incrx / 2);
 	posy = y + (incry / 2);
 	correcty = 5;	//En pixeles
@@ -700,13 +709,29 @@ void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x,
 		for (j = 0; j < 9; j++) {
 			if (comprobar_celda_pista(cuadricula[i][j]))	//Print pista
 					{
-				valorPista = celda_leer_valor(cuadricula[i][j]);
+				valorCelda = celda_leer_valor(cuadricula[i][j]);
 				Lcd_Draw_Box(x + (j * incrx) + 3, y + (i * incry) + 3,
 						x + (j + 1) * incrx - 2, y + (i + 1) * incry - 2,
 						BLACK);
 				Lcd_DspAscII8x16(posx + (j * incrx) - correctx,
 						posy + (i * incry) - correcty, BLACK,
-						get_string_from_integer(valorPista - 1));
+						get_string_from_integer(valorCelda - 1));
+			}
+			else if(comprobar_celda_error(cuadricula[i][j])){	//print error
+				valorCelda = celda_leer_valor(cuadricula[i][j]);
+				/*Comprobar! -> pinta de negro el cuadrado interior
+				LcdClrRect(x + (j * incrx) + 3, y + (i * incry) + 3,
+						x + (j + 1) * incrx - 2, y + (i + 1) * incry - 2,
+						BLACK);
+						*/
+				//Comprobar! -> pinta de negro toda la celda
+				LcdClrRect(x + (j * incrx), y + (i * incry)
+						x + (j + 1) * incrx, y + (i + 1) * incry,
+						BLACK);
+						
+				Lcd_DspAscII8x16(posx + (j * incrx) - correctx,
+						posy + (i * incry) - correcty, WHITE,
+						get_string_from_integer(valorCelda - 1));
 			} else {	//Print candidatos
 				Lcd_print_candidatos(cuadricula[i][j], x + (j * incrx),
 						y + (i * incry), incrx, incry, 0);

@@ -41,6 +41,13 @@ int comprobar_celda_pista(CELDA celda)
 }
 
 /* *****************************************************************************
+ * Devuelve 1 si y solo si la celda es un error */
+int comprobar_celda_error(CELDA celda)
+{
+	return (celda & 0x4000);
+}
+
+/* *****************************************************************************
  * recorrer fila descartando valor de listas candidatos */
 inline void descartar_candidatos_fila(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
                              uint8_t fila, uint8_t columna, uint8_t valor)

@@ -29,6 +29,7 @@ void Delay(int time)
 // 100us resolution.//
 {
 	int i,adjust=0;
+	int nothing;
 	if(time==0)
 	{
 		time=200;
@@ -39,8 +40,11 @@ void Delay(int time)
 		rWTCNT=0xffff;	 
 		rWTCON=((MCLK/1000000-1)<<8)|(2<<3)|(1<<5); // 1M/64,Watch-dog enable,nRESET,interrupt disable //
 	}
+	nothing = 0;
 	for(;time>0;time--)
-		for(i=0;i<delayLoopCount;i++);
+		for(i=0;i<delayLoopCount;i++){
+			if(nothing == -1) nothing = 0;
+		}
 	if(adjust==1)
 	{
 		rWTCON=((MCLK/1000000-1)<<8)|(2<<3);
@@ -51,18 +55,22 @@ void Delay(int time)
 
 void DelayMs(int ms_time)
 {
-	int i;
-	
-	for( i = 0 ; i < 1000*ms_time ; i++ )
-		;
+	int i, nothing;
+	nothing = 0;
+	for( i = 0 ; i < 1000*ms_time ; i++ ){
+		if(nothing == -1) nothing = 0;
+	}
+		
 }
 
 void DelayTime(int num)
 {
-	int i;
-	
-	for( i = 0 ; i < num ; i++ )
-		;
+	int i, nothing;
+	nothing = 0;
+	for( i = 0 ; i < num ; i++ ){
+		if(nothing == -1) nothing = 0;
+	}
+		
 }
 
 //------------------------PORTS------------------------------//

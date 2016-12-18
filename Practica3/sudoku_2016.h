@@ -22,6 +22,7 @@ typedef uint16_t CELDA;
  */
 
 int comprobar_celda_pista(CELDA celda);
+int comprobar_celda_error(CELDA celda);
 
 /* declaracion de funciones visibles en el exterior */
 void sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready);
