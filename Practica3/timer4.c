@@ -23,7 +23,7 @@ void timer4_ISR(void) __attribute__((interrupt("IRQ")));
 /*--- codigo de las funciones ---*/
 void timer4_ISR(void)
 {
-
+	timer4_num_int ++;
 	automata_timer();
 	/* borrar bit en I_ISPC para desactivar la solicitud de interrupción*/
 	rI_ISPC |= BIT_TIMER4; // BIT_timer4 está definido en 44b.h y pone un uno en el bit 15 que correponde al timer4
@@ -34,8 +34,7 @@ void automata_timer(void)
 	int which;
 
 	/* Automata contra rebotes timer4 */
-	if(timer4_wait_until>timer4_num_int){
-		timer4_num_int++;
+	if(timer4_wait_until > timer4_leer()){
 		//push(8,timer4_num_int);
 	}else{
 		//push(11,which_int_timer);
@@ -48,7 +47,7 @@ void automata_timer(void)
 				which = getWhichInt();
 				if(which == 0x40 || which == 0x80){//Hay pulsacion
 					//push(7,rPDATG);
-					timer4_wait_until = 80;//trp //Sin O -> [80]
+					timer4_wait_until = 80;//trp (en ms) //Sin O -> [80]
 					timer4_num_int = 0;
 					status_timer = state[Sampling];
 				}
@@ -60,12 +59,12 @@ void automata_timer(void)
 				which_int_timer = rPDATG & 0xc0;
 				if(which_int_timer == getWhichInt()) //Si el boton sigue presionado
 				{
-					timer4_wait_until=10;	//Sin O -> [10-20]
+					timer4_wait_until=50;	//50ms //Sin O -> [10-20]
 					timer4_num_int=0;
 					//push(3,which_int_timer);
 				}
 				else{							//Se ha soltado el boton
-					timer4_wait_until=120;//trd //Sin O -> [120]
+					timer4_wait_until=120;//trd (en ms)
 					timer4_num_int=0;
 					status_timer = state[ActivateIRQ];
 					//push(12,which_int_timer);
@@ -143,5 +142,5 @@ void timer4_empezar(void)
 }
 long timer4_leer(void)
 {
-	return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32;
+	return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32000;
 }
