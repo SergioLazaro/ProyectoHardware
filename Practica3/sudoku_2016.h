@@ -21,8 +21,11 @@ typedef uint16_t CELDA;
  * 4 bits VALOR
  */
 
+void celda_poner_error(CELDA *celdaptr);
+void celda_quitar_error(CELDA *celdaptr);
 int comprobar_celda_pista(CELDA celda);
 int comprobar_celda_error(CELDA celda);
+int sudoku_candidatos_modificar(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, uint8_t columna, uint8_t valor);
 
 /* declaracion de funciones visibles en el exterior */
 void sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready);

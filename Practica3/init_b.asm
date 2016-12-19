@@ -275,12 +275,19 @@ checkfila:
 		# Comprobar si hay coincidencia
 		AND		r9, r6, #0xf		//r9 contiene valor celda actual
 		CMP		r9, r3
-		BNE		continuar1
+		BNE		noerror1
 		#pone error en celda origen
 		LDRH	r9, [r0]
 		ORR		r9, r9, #0x4000			//Si coincide -> metemos error siempre
 		STRH	r9, [r0]
 		ORR		r6, r6, #0x4000		//pone error en celda actual
+		B 		continuar1
+
+noerror1:
+		LDRH	r9, [r0]
+		#AND		r9, r9, #0xBFFF			//Si coincide -> metemos error siempre
+		STRH	r9, [r0]
+		#AND		r6, r6, #0xBFFF		//pone error en celda actual
 
 continuar1:
 		AND		r6, r6, r4			//Guardamos la modificacion de la celda
@@ -325,12 +332,19 @@ checkcolum:
 				# Comprobar si hay coincidencia
 		AND		r9, r6, #0xf		//r9 contiene valor celda actual
 		CMP		r9, r3
-		BNE		continuar2
+		BNE		noerror2
 		#pone error en celda origen
 		LDRH	r9, [r0]
 		ORR		r9, r9, #0x4000			//Si coincide -> metemos error siempre
 		STRH	r9, [r0]
 		ORR		r6, r6, #0x4000		//pone error en celda actual
+		B		continuar2
+
+noerror2:
+		LDRH	r9, [r0]
+		#AND		r9, r9, #0xBFFF			//Si coincide -> metemos error siempre
+		STRH	r9, [r0]
+		#AND		r6, r6, #0xBFFF		//pone error en celda actual
 
 continuar2:
 		AND		r6, r6, r4
@@ -398,12 +412,19 @@ checkreg:
 		# Comprobar si hay coincidencia
 		AND		r9, r5, #0xf		//r9 contiene valor celda actual
 		CMP		r9, r3
-		BNE		continuar3
+		BNE		noerror3
 		#pone error en celda origen
 		LDRH	r9, [r8]
 		ORR		r9, r9, #0x4000			//Si coincide -> metemos error siempre
 		STRH	r9, [r8]
 		ORR		r5, r5, #0x4000		//pone error en celda actual
+		B		continuar3
+
+noerror3:
+		LDRH	r9, [r8]
+		#AND		r9, r9, #0xBFFF			//Si coincide -> metemos error siempre
+		STRH	r9, [r8]
+		#AND		r5, r5, #0xBFFF		//pone error en celda actual
 
 continuar3:
 		AND		r5, r5, r4

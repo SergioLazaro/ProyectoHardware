@@ -134,6 +134,7 @@ void Lcd_Draw_Box_grosor(INT16 usLeft, INT16 usTop, INT16 usRight, INT16 usBotto
 /* Funciones propias */
 void Lcd_Test(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
 void Lcd_pantalla_inicial(void);
+void Lcd_pantalla_final(int time);
 void LCD_display_centrado(int y, int color, char *string);
 void Lcd_print_sudoku(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS]);
 void Lcd_print_indexes(int x, int y, int incrx, int incry);

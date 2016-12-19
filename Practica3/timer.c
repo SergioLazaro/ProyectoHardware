@@ -61,7 +61,8 @@ void timer0_empezar()
 }
 int timer0_leer()
 {
-	return ((timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 32000;	//microsegundos
+	return (long) ((double) (timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 0.032;//nanosegundos
+	//return ((timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 32000000;	//segundos
 }
 
 

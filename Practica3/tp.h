@@ -22,6 +22,7 @@ unsigned int  Ymin;
 unsigned int x_elegida;
 unsigned int y_elegida;
 unsigned int activar_zoom;
+unsigned int estado_zoom;
 
 void TS_Test(void);
 void TS_init(void);

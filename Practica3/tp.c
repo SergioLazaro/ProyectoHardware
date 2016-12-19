@@ -10,6 +10,7 @@
 #include "tp.h"
 #include "lcd.h"
 #include "uart.h"
+#include "timer2.h"
 
 void TSInt(void) __attribute__((interrupt("IRQ")));
 
@@ -85,6 +86,10 @@ void TSInt(void)
 		//Uart_Printf("  Y-Posion[AIN0] is %04d\n", Pt[5]);
 
 		activar_zoom = 1;
+		if(estado_zoom == 0){
+			estado_zoom = 1;
+			timer2_empezar();
+		}
 		//Fix x
 		x_elegida = tmp;
 		if(x_elegida < 0) x_elegida = 0;
@@ -145,6 +150,7 @@ void TS_init(void)
     Ymax = 620;    Ymin = 120;
     */
     activar_zoom = 0;
+    estado_zoom = 0;
     x_elegida = 0;
     y_elegida = 0;
 }

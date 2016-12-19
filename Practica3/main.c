@@ -55,7 +55,9 @@ void esperar_confirmacion_fila(int button);
 void seleccionar_valor_fila(int button);
 void esperar_confirmacion_columna(int button);
 void seleccionar_valor_columna(int button);
-void seleccionar_valor_celda(int button);
+int seleccionar_valor_celda(int button, int modificado);
+void reset_cuadricula(void);
+void esperar_reset_partida(int button);
 extern void Lcd_Test();
 /*--- codigo de funciones ---*/
 
@@ -69,37 +71,15 @@ void iniciar_placa(void)
 	D8Led_init(); 		// inicializamos el 8led
 
 	timer2_inicializar();
-	timer2_empezar();
 	timer4_inicializar();
 
 	Eint4567_init();	// inicializamos los pulsadores. Cada vez que se pulse se verá reflejado en el 8led
 
 	Lcd_Init();
-	Lcd_Test(cuadricula);
+	Lcd_pantalla_inicial();
 
 	TS_init();
-	//char yn;
-	int estoy_zoom;
-	estoy_zoom = 0;
-	while(1)
-	 {
-	   //yn = Uart_Getch();
-		if(estoy_zoom && activar_zoom){	//Estoy en zoom y salgo
-			Lcd_Test(cuadricula);
-			estoy_zoom = 0;
-			activar_zoom = 0;
-		}
-		else if(activar_zoom){	//Entro en zoom
-			Lcd_zoom_region(cuadricula, x_elegida, y_elegida);
-			activar_zoom = 0;
-			estoy_zoom = 1;
-		}
-		Lcd_print_tiempo_total(timer0_leer());
-	   //if(yn == 0x52) TS_Test();// R to reset the XY REC
-	   //else break;
-	 }
 
-	TS_close();
 	//Init exceptions
 	Exception_init();
 	//Init stack
@@ -185,6 +165,7 @@ void Main(void)
 
 #else
 
+	Delay(100);
 	//fila = 6, columna = 5, valor = 5 -> valor correcto
 	sudoku_candidatos_modificar(cuadricula, 5, 4, 5);
 
@@ -255,7 +236,7 @@ void seleccionar_valor_fila(int button)
 	push(10,button);
 	if(button == 0x80)
 	{
-		if(int_count == 9)
+		if(int_count == 10)
 		{
 			int_count = 0;
 		}
@@ -267,8 +248,13 @@ void seleccionar_valor_fila(int button)
 	else if(button == 0x40)
 	{
 		fila = int_count;
-		D8Led_symbol(0xC);
-		status = 2;
+		if(fila != 10){
+			D8Led_symbol(0xC);
+			status = 2;
+		}
+		else{
+			status = 5;
+		}
 		setBotonPulsado(0);
 	}
 }
@@ -328,7 +314,7 @@ void seleccionar_valor_columna(int button)
  * Boton izquierda -> incrementa [0:9]
  * Boton derecho -> confirma
  */
-void seleccionar_valor_celda(int button)
+int seleccionar_valor_celda(int button, int modificado)
 {
 	if(button == 0x80)
 	{
@@ -344,19 +330,91 @@ void seleccionar_valor_celda(int button)
 	else if(button == 0x40)
 	{
 		valor = int_count;
+		timer0_empezar();
 		sudoku_candidatos_modificar(cuadricula, fila - 1, columna - 1 , valor);
+		Lcd_print_tiempo_calculo(timer0_leer());
+		modificado = 1;
 		D8Led_symbol(11);	//Display 0 para test
 		//Llamada a propagar
 		Delay(10000);		//Delay para ver el 0
 		status = 0;
 		setBotonPulsado(0);
 	}
+	return modificado;
+}
+
+void fin_partida(int tiempo){
+	Lcd_pantalla_final(tiempo);
+	status = 6;
+}
+
+void esperar_reset_partida(int button){
+	if(button == 0x80 || button == 0x40){
+		valor = 0;
+		fila = 0;
+		columna = 0;
+		int_count = 0;
+		status = 0;
+		reset_cuadricula();
+		setBotonPulsado(0);
+	}
+}
+void reset_cuadricula(void){
+	CELDA auxCuadricula[NUM_FILAS][NUM_COLUMNAS]__attribute__((aligned(16))) = {
+		{0x8005,0x0000,0x0000,0x8003,0x0000,0x0000,0x0000,0x0000,0x0000,0,0,0,0,0,0,0},
+		{0x0000,0x0000,0x0000,0x0000,0x8009,0x0000,0x0000,0x0000,0x8005,0,0,0,0,0,0,0},
+		{0x0000,0x8009,0x8006,0x8007,0x0000,0x8005,0x0000,0x8003,0x0000,0,0,0,0,0,0,0},
+		{0x0000,0x8008,0x0000,0x8009,0x0000,0x0000,0x8006,0x0000,0x0000,0,0,0,0,0,0,0},
+		{0x0000,0x0000,0x8005,0x8008,0x8006,0x8001,0x8004,0x0000,0x0000,0,0,0,0,0,0,0},
+		{0x0000,0x0000,0x8004,0x8002,0x0000,0x8003,0x0000,0x8007,0x0000,0,0,0,0,0,0,0},
+		{0x0000,0x8007,0x0000,0x8005,0x0000,0x8009,0x8002,0x8006,0x0000,0,0,0,0,0,0,0},
+		{0x8006,0x0000,0x0000,0x0000,0x8008,0x0000,0x0000,0x0000,0x0000,0,0,0,0,0,0,0},
+		{0x0000,0x0000,0x0000,0x0000,0x0000,0x8002,0x0000,0x0000,0x8001,0,0,0,0,0,0,0}
+	};
+	int i, j;
+	for(i = 0; i < NUM_FILAS; i++){
+		for(j = 0; j < NUM_FILAS; j++){
+			cuadricula[i][j] = auxCuadricula[i][j];
+		}
+	}
+	//return cuadricula;
+}
+
+void actualizar_lcd()
+{
+	if(estado_zoom == 1){	//Pantalla sudoku (inicio o vueltaZoom)
+		estado_zoom++;
+		Lcd_Test(cuadricula);
+		activar_zoom = 0;
+	}
+	else if(estado_zoom == 2){	//Pantalla zoom
+		estado_zoom --;
+		Lcd_zoom_region(cuadricula, x_elegida, y_elegida);
+		activar_zoom = 0;
+	}
+
+
 }
 
 void automata()
 {
+	int modificado, tiempo_final;
+	//activar_zoom = 1;		//Borrar esto cuando funcione el tactil (saltar instrucciones)
+	modificado = 0;
 	while(1)
 	{
+		if(modificado || activar_zoom){
+			actualizar_lcd();
+			modificado = 0;
+
+		}
+		if(status < 5 && estado_zoom != 0){	//Si no se ha acabado o no se ha empezado
+			Lcd_print_tiempo_total(timer2_leer());
+		}
+		else{
+			tiempo_final = timer2_leer();
+		}
+
 		switch (status)
 		{
 			case 0:
@@ -372,7 +430,13 @@ void automata()
 				seleccionar_valor_columna(getBotonPulsado());
 				break;
 			case 4:
-				seleccionar_valor_celda(getBotonPulsado());
+				modificado = seleccionar_valor_celda(getBotonPulsado(), modificado);
+				break;
+			case 5:
+				fin_partida(tiempo_final);
+				break;
+			default:
+				esperar_reset_partida(getBotonPulsado());
 				break;
 		}
 

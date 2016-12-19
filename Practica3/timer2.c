@@ -79,5 +79,5 @@ void timer2_empezar()
 }
 long timer2_leer()
 {
-	return ((timer2_num_int*(rTCNTB2 - rTCMPB2) + (rTCNTB2 - rTCNTO2))) / 32;	//microsegundos
+	return ((timer2_num_int*(rTCNTB2 - rTCMPB2) + (rTCNTB2 - rTCNTO2))) / 32000000;	//microsegundos
 }
