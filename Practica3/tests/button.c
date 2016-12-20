@@ -34,9 +34,10 @@ void Eint4567_ISR(void)
 	/* Identificar la interrupcion (hay dos pulsadores)*/
 	which_int = rPDATG & 0xc0;
 	boton_pulsado = which_int;
+	restart_status_timer4();
 	//rEXTINTPND = 0;
-	//rINTMSK |= BIT_EINT4567;
-	rINTMSK    = ~(BIT_GLOBAL | BIT_EINT4567 | BIT_TIMER4 | BIT_TIMER2 | BIT_TIMER0);
+	rINTMSK |= BIT_EINT4567;
+	//rINTMSK    = ~(BIT_GLOBAL | BIT_EINT4567 | BIT_TIMER4 | BIT_TIMER2 | BIT_TIMER0);
 	//iniciar timer aqui
 	timer4_empezar();
 

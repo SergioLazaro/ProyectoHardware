@@ -14,7 +14,7 @@
 #include "pila_depuracion.h"
 
 /*--- variables globales ---*/
-int state[state_length] = {Idle, Sampling, ActivateIRQ, End};
+int state[state_length] = {Idle, Sampling, ButtonReleased, ActivateIRQ, End};
 
 /* declaración de función que es rutina de servicio de interrupción
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
@@ -31,12 +31,9 @@ void timer4_ISR(void)
 
 void automata_timer(void)
 {
-	int which;
 
 	/* Automata contra rebotes timer4 */
-	if(timer4_wait_until > timer4_leer()){
-		//push(8,timer4_num_int);
-	}else{
+	if(timer4_wait_until <= timer4_leer()){
 		//push(11,which_int_timer);
 		switch(status_timer){
 			case 0:	//Idle
@@ -44,47 +41,69 @@ void automata_timer(void)
 				 * 0x40 -> boton derecho pulsado
 				 * 0x80 -> boton izquierdo pulsado
 				 */
-				which = getWhichInt();
-				if(which == 0x40 || which == 0x80){//Hay pulsacion
-					//push(7,rPDATG);
-					timer4_wait_until = 80;//trp (en ms) //Sin O -> [80]
-					timer4_num_int = 0;
-					status_timer = state[Sampling];
-				}
-
+				primeros_rebotes();
 				break;
 			case 1:	//Sampling
-				//pushed = rPDATG & 0x40;
-				//push(4,pushed);
-				which_int_timer = rPDATG & 0xc0;
-				if(which_int_timer == getWhichInt()) //Si el boton sigue presionado
-				{
-					timer4_wait_until=50;	//50ms //Sin O -> [10-20]
-					timer4_num_int=0;
-					//push(3,which_int_timer);
-				}
-				else{							//Se ha soltado el boton
-					timer4_wait_until=120;//trd (en ms)
-					timer4_num_int=0;
-					status_timer = state[ActivateIRQ];
-					//push(12,which_int_timer);
-				}
+				mantiene_pulsado();
 				break;
-			case 2: //ActivateIRQ
-				setWhichInt(0);
-				//push(15,which_int_timer);
-
-				//Reactivar interrupciones boton
-				rEXTINTPND = 0xf;
-				/* Por precaucion, se vuelven a borrar los bits de INTPND y EXTINTPND */
-				rI_ISPC |= (BIT_EINT4567);
-				//Activamos interrupciones de los botones
-				rINTMSK &= ~(BIT_EINT4567);
+			case 2: 
+				button_released();
+				break;
+			case 3: //ActivateIRQ
+				activar_irq();
+				break;
+			default:
 				break;
 		}
 	}
 }
 
+void primeros_rebotes(void){
+	if(getWhichInt() == 0x40 || getWhichInt() == 0x80){//Hay pulsacion
+		//push(7,rPDATG);
+		timer4_wait_until = 80;//trp (en ms)
+		//timer4_num_int = 0;
+		timer4_empezar();
+		status_timer = state[Sampling];
+	}
+}
+
+void mantiene_pulsado(void){
+	which_int_timer = rPDATG & 0xc0;
+	if(which_int_timer == getWhichInt()) //Si el boton sigue presionado
+	{
+		timer4_wait_until=50;	//50ms
+		timer4_empezar();
+		//timer4_num_int=0;
+	}
+	else{							//Se ha soltado el boton
+		status_timer = state[ButtonReleased];
+		timer4_empezar();
+	}
+}
+
+void button_released(void){
+	timer4_wait_until=120;//trd (en ms)
+	//timer4_num_int=0;
+	timer4_empezar();
+	status_timer = state[ActivateIRQ];
+}
+
+void activar_irq(void){
+	setWhichInt(0);
+	//Activamos interrupciones de los botones
+	rINTMSK &= ~(BIT_EINT4567);
+
+	//Reactivar interrupciones boton
+	//rEXTINTPND = 0xf;
+	/* Por precaucion, se vuelven a borrar los bits de INTPND y EXTINTPND */
+	//rI_ISPC |= (BIT_EINT4567);
+	
+}
+
+void restart_status_timer4(void){
+	status_timer = state[Idle];
+}
 
 void timer4_inicializar(void)
 {
@@ -128,19 +147,22 @@ void timer4_inicializar(void)
 	/* iniciar timer (bit 0) con auto-reload (bit 3) -> 1001 */
 	rTCON = rTCON | 0x900000;
 
+	tiempo_tick = 0.03125;	// 0.03125 us
+	tiempo_interrupcion = tiempo_tick * rTCNTB4;
 }
 
 void timer4_empezar(void)
 {
-	status_timer = state[Idle];
+	//status_timer = state[Idle];
 	timer4_num_int = 0;
-	rTCNTO4 = rTCNTB4;
+	//rTCNTO4 = rTCNTB4;
 	//Volvemos a poner update manual para modificar
-	rTCON = rTCON | 0x200000;
+	rTCON |= 0x200000;
 	//Volvemos al valor que nos interesa
-	rTCON = rTCON & 0x9FFFFF;
+	rTCON &= 0x9FFFFF;
 }
 long timer4_leer(void)
 {
-	return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32000;
+	return timer4_num_int * tiempo_interrupcion + ((rTCNTB4 - rTCNTO4) * tiempo_tick) / 1000; //ms
+	//return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32000;
 }
