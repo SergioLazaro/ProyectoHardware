@@ -93,7 +93,9 @@ void activar_irq(void){
 	setWhichInt(0);
 	//Activamos interrupciones de los botones
 	rINTMSK &= ~(BIT_EINT4567);
-
+	
+	//Leon: status_timer = state[End];
+	
 	//Reactivar interrupciones boton
 	//rEXTINTPND = 0xf;
 	/* Por precaucion, se vuelven a borrar los bits de INTPND y EXTINTPND */
