@@ -16,7 +16,7 @@
 /*--- variables globales ---*/
 int state[state_length] = {Idle, Sampling, ButtonReleased, ActivateIRQ, End};
 
-/* declaración de función que es rutina de servicio de interrupción
+/* declaraciÃ³n de funciÃ³n que es rutina de servicio de interrupciÃ³n
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
 void timer4_ISR(void) __attribute__((interrupt("IRQ")));
 
@@ -25,8 +25,8 @@ void timer4_ISR(void)
 {
 	timer4_num_int ++;
 	automata_timer();
-	/* borrar bit en I_ISPC para desactivar la solicitud de interrupción*/
-	rI_ISPC |= BIT_TIMER4; // BIT_timer4 está definido en 44b.h y pone un uno en el bit 15 que correponde al timer4
+	/* borrar bit en I_ISPC para desactivar la solicitud de interrupciÃ³n*/
+	rI_ISPC |= BIT_TIMER4; // BIT_timer4 estÃ¡ definido en 44b.h y pone un uno en el bit 15 que correponde al timer4
 }
 
 void automata_timer(void)
@@ -78,7 +78,7 @@ void mantiene_pulsado(void){
 	}
 	else{							//Se ha soltado el boton
 		status_timer = state[ButtonReleased];
-		timer4_empezar();
+		timer4_empezar();//Leon: Creo que esto no hace falta(creo que te hara esperar 50ms otra vez)				
 	}
 }
 
@@ -119,7 +119,7 @@ void timer4_inicializar(void)
 	rINTCON = 0x1; // Habilita int. vectorizadas y la linea IRQ (FIQ no)
 
 	// Enmascara todas las lineas excepto timer4, Timer0 y el bit global
-	// (bits 26 y 13, BIT_GLOBAL y BIT_TIMER0 están definidos en 44b.h)
+	// (bits 26 y 13, BIT_GLOBAL y BIT_TIMER0 estÃ¡n definidos en 44b.h)
 	// bit = 0 -> interrupcion disponible
 	// bit = 1 -> interrupcion enmascarada
 	rINTMSK    = ~(BIT_GLOBAL | BIT_TIMER4 | BIT_TIMER2 | BIT_TIMER0); // Enmascara todas las lineas excepto...
@@ -134,9 +134,9 @@ void timer4_inicializar(void)
 	//selecciona la entrada del mux que proporciona el reloj. La 00 corresponde a un divisor de 1/2.
 	rTCFG1 = (rTCFG1 & 0xFFF0FFFF);
 	rTCNTB4 = 65535;// valor inicial de cuenta (la cuenta es descendente)
-	rTCMPB4 = 0;// valor de comparación
+	rTCMPB4 = 0;// valor de comparaciÃ³n
 	/* establecer update=manual (bit 1) + inverter=on
-	(¿? será inverter off un cero en el bit 2 pone el inverter en off)*/
+	(Â¿? serÃ¡ inverter off un cero en el bit 2 pone el inverter en off)*/
 	// update manual y autoreload.
 	//timer4 bits [15:12]
 	//bit 15 -> auto reload on/off
@@ -163,6 +163,6 @@ void timer4_empezar(void)
 }
 long timer4_leer(void)
 {
-	return timer4_num_int * tiempo_interrupcion + ((rTCNTB4 - rTCNTO4) * tiempo_tick) / 1000; //ms
+	return (timer4_num_int * tiempo_interrupcion + ((rTCNTB4 - rTCNTO4) * tiempo_tick)) / 1000; //ms //Leon: Creo que faltaban unos parentesis.
 	//return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32000;
 }
