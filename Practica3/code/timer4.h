@@ -13,15 +13,18 @@
 enum state {
 	Idle = 0,
 	Sampling = 1,
-	ActivateIRQ = 2,
-	End = 3,
-	state_length = 4
+	ButtonReleased = 2,
+	ActivateIRQ = 3,
+	End = 4,
+	state_length = 5
 };
 
 int status_timer;
 int timer4_wait_until;
 int timer4_num_int;
 int which_int_timer;
+double tiempo_tick;
+double tiempo_interrupcion;
 
 /*--- declaracion de funciones visibles timer4 ---*/
 void timer4_inicializar(void);
@@ -29,5 +32,11 @@ void timer4_empezar(void);
 long timer4_leer(void);
 void automata_timer(void);
 
+/*--- declaracion funciones estado automamta ---*/
+void primeros_rebotes(void);
+void mantiene_pulsado(void);
+void button_released(void);
+void activar_irq(void);
+void restart_status_timer4(void);
 
 #endif /* _TIMER4_H_ */

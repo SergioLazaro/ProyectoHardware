@@ -14,7 +14,7 @@
 #include "pila_depuracion.h"
 
 /*--- variables globales ---*/
-int state[state_length] = {Idle, Sampling, ActivateIRQ, End};
+int state[state_length] = {Idle, Sampling, ButtonReleased, ActivateIRQ, End};
 
 /* declaración de función que es rutina de servicio de interrupción
  * https://gcc.gnu.org/onlinedocs/gcc/ARM-Function-Attributes.html */
@@ -31,12 +31,10 @@ void timer4_ISR(void)
 
 void automata_timer(void)
 {
-	int which;
 
 	/* Automata contra rebotes timer4 */
-	if(timer4_wait_until > timer4_leer()){
-		//push(8,timer4_num_int);
-	}else{
+	//if(timer4_wait_until <= timer4_leer()){
+	if(timer4_wait_until <= timer4_num_int){
 		//push(11,which_int_timer);
 		switch(status_timer){
 			case 0:	//Idle
@@ -44,54 +42,83 @@ void automata_timer(void)
 				 * 0x40 -> boton derecho pulsado
 				 * 0x80 -> boton izquierdo pulsado
 				 */
-				which = getWhichInt();
-				if(which == 0x40 || which == 0x80){//Hay pulsacion
-					//push(7,rPDATG);
-					timer4_wait_until = 80;//trp (en ms) //Sin O -> [80]
-					timer4_num_int = 0;
-					status_timer = state[Sampling];
-				}
-
+				primeros_rebotes();
 				break;
 			case 1:	//Sampling
-				//pushed = rPDATG & 0x40;
-				//push(4,pushed);
-				which_int_timer = rPDATG & 0xc0;
-				if(which_int_timer == getWhichInt()) //Si el boton sigue presionado
-				{
-					timer4_wait_until=50;	//50ms //Sin O -> [10-20]
-					timer4_num_int=0;
-					//push(3,which_int_timer);
-				}
-				else{							//Se ha soltado el boton
-					timer4_wait_until=120;//trd (en ms)
-					timer4_num_int=0;
-					status_timer = state[ActivateIRQ];
-					//push(12,which_int_timer);
-				}
+				mantiene_pulsado();
 				break;
-			case 2: //ActivateIRQ
-				setWhichInt(0);
-				//push(15,which_int_timer);
-
-				//Reactivar interrupciones boton
-				rEXTINTPND = 0xf;
-				/* Por precaucion, se vuelven a borrar los bits de INTPND y EXTINTPND */
-				rI_ISPC |= (BIT_EINT4567);
-				//Activamos interrupciones de los botones
-				rINTMSK &= ~(BIT_EINT4567);
+			case 2:	//Soltar boton
+				button_released();
+				break;
+			case 3: //ActivateIRQ
+				activar_irq();
+				break;
+			default:
 				break;
 		}
 	}
 }
 
+void primeros_rebotes(void){
+	if(getWhichInt() == 0x40 || getWhichInt() == 0x80){//Hay pulsacion
+		//push(7,rPDATG);
+		timer4_wait_until = 10;//trp (en ms)
+		//timer4_num_int = 0;
+		timer4_empezar();
+		status_timer = state[Sampling];
+	}
+	else{
+		//status_timer = state[End];
+		activar_irq();
+	}
+}
+
+void mantiene_pulsado(void){
+	which_int_timer = rPDATG & 0xc0;
+	if(which_int_timer == getWhichInt()) //Si el boton sigue presionado
+	{
+		timer4_wait_until=5;	//50ms
+		timer4_empezar();
+		//timer4_num_int=0;
+	}
+	else{							//Se ha soltado el boton
+		status_timer = state[ButtonReleased];
+		timer4_empezar();//Leon: Creo que esto no hace falta(creo que te hara esperar 50ms otra vez)
+	}
+}
+
+void button_released(void){
+	timer4_wait_until=10;//trd (en ms)
+	//timer4_num_int=0;
+	timer4_empezar();
+	status_timer = state[ActivateIRQ];
+}
+
+void activar_irq(void){
+	setWhichInt(0);
+	//Activamos interrupciones de los botones
+	rINTMSK &= ~(BIT_EINT4567);
+	//rINTMSK = ~(BIT_GLOBAL | BIT_EINT2 | BIT_EINT4567 | BIT_TIMER4 | BIT_TIMER2 | BIT_TIMER0);
+
+	status_timer = state[End];
+
+	//Reactivar interrupciones boton
+	//rEXTINTPND = 0xf;
+	/* Por precaucion, se vuelven a borrar los bits de INTPND y EXTINTPND */
+	//rI_ISPC |= (BIT_EINT4567);
+
+}
+
+void restart_status_timer4(void){
+	status_timer = state[Idle];
+}
 
 void timer4_inicializar(void)
 {
 	/* Inicializamos variables globales*/
 	timer4_wait_until = 0;
 	timer4_num_int = 0;
-	status_timer = 0;
+	status_timer = state[End];
 	which_int_timer = 0;
 	push(10,0);
 
@@ -109,12 +136,13 @@ void timer4_inicializar(void)
 
 	/* Configura el timer4 */
 	//bits[15:8]
-	rTCFG0 = (rTCFG0 & 0xFF00FFFF); // ajusta el preescalado
+	rTCFG0 |= 0x00FF0000; // ajusta el preescalado
 
 	//bits [11:8]
 	//selecciona la entrada del mux que proporciona el reloj. La 00 corresponde a un divisor de 1/2.
-	rTCFG1 = (rTCFG1 & 0xFFF0FFFF);
-	rTCNTB4 = 65535;// valor inicial de cuenta (la cuenta es descendente)
+	rTCFG1 &= 0xFFF0FFFF;
+	//rTCNTB4 = 65535;// valor inicial de cuenta (la cuenta es descendente)
+	rTCNTB4 = 1000;// valor inicial de cuenta (la cuenta es descendente)
 	rTCMPB4 = 0;// valor de comparación
 	/* establecer update=manual (bit 1) + inverter=on
 	(¿? será inverter off un cero en el bit 2 pone el inverter en off)*/
@@ -124,23 +152,34 @@ void timer4_inicializar(void)
 	//bit 14 -> output inverte on/off
 	//bit 13 -> manual update on/off
 	//bit 12 -> start/stop
-	rTCON = rTCON | 0xA00000;
+	//rTCON |= 0x200000;
 	/* iniciar timer (bit 0) con auto-reload (bit 3) -> 1001 */
-	rTCON = rTCON | 0x900000;
+	//rTCON |= 0x900000;
+	//Volvemos a poner update manual para modificar
+	rTCON |= 0x200000;
+	//Volvemos al valor que nos interesa
+	//rTCON &= 0x9FFFFF;
+	rTCON |= 0x900000;
+	rTCON &= 0xFFDFFFFF;
 
+	tiempo_tick = 0.03125;	// T = 1/64MHz / (1/2) = 0.03125 us
+	//0.03125 * 65535 = 2ms ->
+	tiempo_interrupcion = tiempo_tick * rTCNTB4;
 }
 
 void timer4_empezar(void)
 {
-	status_timer = state[Idle];
 	timer4_num_int = 0;
 	rTCNTO4 = rTCNTB4;
 	//Volvemos a poner update manual para modificar
-	rTCON = rTCON | 0x200000;
+	//rTCON |= 0x200000;
 	//Volvemos al valor que nos interesa
-	rTCON = rTCON & 0x9FFFFF;
+	//rTCON &= 0x9FFFFF;
+	//rTCON |= 0x900000;
+	//rTCON &= 0xFFDFFFFF;
 }
 long timer4_leer(void)
 {
-	return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32000;
+	return (timer4_num_int * tiempo_interrupcion + ((rTCNTB4 - rTCNTO4) * tiempo_tick)); //ms
+	//return (timer4_num_int*(rTCNTB4 - rTCMPB4) + (rTCNTB4 - rTCNTO4)) / 32000;
 }

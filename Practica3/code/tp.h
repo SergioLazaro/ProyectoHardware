@@ -14,15 +14,15 @@
 
 /*--- global  variables ---*/
 volatile int CheckTSP,oneTouch;
-unsigned int  Vx, Vy;
-unsigned int  Xmax;
-unsigned int  Ymax;
-unsigned int  Xmin;
-unsigned int  Ymin;
-unsigned int x_elegida;
-unsigned int y_elegida;
-unsigned int activar_zoom;
-unsigned int estado_zoom;
+volatile unsigned int  Vx, Vy;
+volatile unsigned int  Xmax;
+volatile unsigned int  Ymax;
+volatile unsigned int  Xmin;
+volatile unsigned int  Ymin;
+volatile unsigned int x_elegida;
+volatile unsigned int y_elegida;
+volatile unsigned int activar_zoom;
+volatile unsigned int estado_zoom;
 
 void TS_Test(void);
 void TS_init(void);

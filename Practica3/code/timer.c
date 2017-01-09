@@ -54,15 +54,14 @@ void timer0_empezar()
 	timer0_num_int = 0;
 	rTCNTO0 = rTCNTB0;
 	//Volvemos a poner update manual para modificar
-	rTCON = rTCON | 0x2;
+	//rTCON = rTCON | 0x2;
 	//Volvemos al valor que nos interesa
-	rTCON = rTCON & 0x9;
+	//rTCON = rTCON & 0x9;
 
 }
-int timer0_leer()
+long timer0_leer()
 {
-	return (long) ((double) (timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 0.032;//nanosegundos
-	//return ((timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 32000000;	//segundos
+	return ((timer0_num_int*(rTCNTB0 - rTCMPB0) + (rTCNTB0 - rTCNTO0))) / 32;	//microsegundos
 }
 
 

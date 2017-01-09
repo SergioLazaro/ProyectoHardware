@@ -144,6 +144,7 @@ void Lcd_print_info_celda(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int 
 void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry, int zoom);
 void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y);
 void Lcd_print_info(void);
+void Lcd_print_tiempo_calculo(long time);
 int comprobar_region_x(int x);
 int comprobar_region_y(int y);
 char* get_string_from_integer(int num);

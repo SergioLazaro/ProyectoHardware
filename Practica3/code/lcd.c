@@ -367,13 +367,13 @@ void Lcd_DspAscII8x16(INT16U x0, INT16U y0, INT8U ForeColor, INT8U * s)
 		{
 			temp[0] = *(s + i);
 			temp[1] = '\0';
-			return;
+        	return;
 		}
 		else
 		{
 			qm = *(s+i);
 			ulOffset = (INT32U)(qm) * 16;		//Here to be changed tomorrow
-			for( j = 0; j < 16; j ++ )
+        	for( j = 0; j < 16; j ++ )
 			{
 				ywbuf[j] = g_auc_Ascii8x16[ulOffset + j];
             }
@@ -383,7 +383,7 @@ void Lcd_DspAscII8x16(INT16U x0, INT16U y0, INT8U ForeColor, INT8U * s)
             	for( x = 0; x < 8; x++ )
                	{
                 	k = x % 8;
-			    	if( ywbuf[y]  & (0x80 >> k) )
+                	if( ywbuf[y]  & (0x80 >> k) )
 			       	{
 			       		xx = x0 + x + i*8;
 			       		LCD_PutPixel(xx, y + y0, (INT8U)ForeColor);
@@ -495,12 +495,12 @@ void Lcd_print_info(void) {
 	// - Introducir fila A para salir
 	// - Tiempo de calculo
 	// - Tiempo transcurrido
-	Lcd_DspAscII6x8(0, 0, BLACK, "T. transcurrido:");
-	Lcd_DspAscII6x8(153, 0, BLACK, "s");
-	Lcd_DspAscII6x8(160, 0, BLACK, "T. calculo:");
-	Lcd_DspAscII6x8(290, 0, BLACK, "0");
-	Lcd_DspAscII6x8(300, 0, BLACK, "ns");
-	Lcd_DspAscII6x8(0, 15, BLACK, "Introducir fila A para salir");
+	Lcd_DspAscII6x8(0, 0, BLACK, "T. transcurrido:\0");
+	Lcd_DspAscII6x8(150, 0, BLACK, "s\0");
+	Lcd_DspAscII6x8(160, 0, BLACK, "T. calculo:\0");
+	Lcd_DspAscII6x8(290, 0, BLACK, "0 \0");
+	Lcd_DspAscII6x8(300, 0, BLACK, "us\0");
+	Lcd_DspAscII6x8(0, 15, BLACK, "Introducir fila A para salir\0");
 }
 
 void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y) {
@@ -567,8 +567,8 @@ void Lcd_zoom_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], int x, int y) {
 				LcdClrRect(posregx + (i * incrposregx), posregy + (j * incrposregy), posregx + ((i + 1) * incrposregx), posregy + ((j + 1) * incrposregy), BLACK);
 				//Print valor en blanco
 				if(comprobar_celda_pista(auxCuadricula)){	//Si es pista, pintamos cuadrado blanco
-					Lcd_Draw_Box(posregx + (j * incrposregx) + 5, posregy + (i * incrposregy) + 5,
-						posregx + (j + 1) * incrposregx - 5, posregy + (i + 1) * incrposregy - 5,
+					Lcd_Draw_Box(posregx + (i * incrposregx) + 5, posregy + (j * incrposregy) + 5,
+						posregx + (i + 1) * incrposregx - 5, posregy + (j + 1) * incrposregy - 5,
 						WHITE);
 				}
 				Lcd_DspAscII8x16(posregx + (i * incrposregx + (incrposregx / 2)),
@@ -628,25 +628,25 @@ void Lcd_pantalla_inicial(void) {
 	Lcd_Clr();
 	Lcd_Active_Clr();
 
-	LCD_display_centrado(0, BLACK, "Instrucciones para jugar:");//Display string centrado
-	Lcd_DspAscII6x8(0, 20, BLACK, "- Resuelva el sudoku siguiendo las reglas del mismo.");
-	Lcd_DspAscII6x8(0, 45, BLACK, "- Introduzca fila, columna y valor con pulsadores.");
-	Lcd_DspAscII6x8(0, 70, BLACK, "- Pulse boton izquierdo para incrementar.");
-	Lcd_DspAscII6x8(0, 95, BLACK, "- Pulse boton derecho para confirmar.");
-	Lcd_DspAscII6x8(0, 120, BLACK, "- Pulse en una region para hacer zoom.");
+	LCD_display_centrado(0, BLACK, "Instrucciones para jugar:\0");//Display string centrado
+	Lcd_DspAscII6x8(0, 20, BLACK, "- Resuelva el sudoku siguiendo las reglas del mismo.\0");
+	Lcd_DspAscII6x8(0, 45, BLACK, "- Introduzca fila, columna y valor con pulsadores.\0");
+	Lcd_DspAscII6x8(0, 70, BLACK, "- Pulse boton izquierdo para incrementar.\0");
+	Lcd_DspAscII6x8(0, 95, BLACK, "- Pulse boton derecho para confirmar.\0");
+	Lcd_DspAscII6x8(0, 120, BLACK, "- Pulse en una region para hacer zoom.\0");
 	//Display string en un cuadrado
 	Lcd_Draw_Box(10, 190, 310, 225, BLACK);
-	LCD_display_centrado(200, BLACK, "Toque la pantalla para jugar.");
+	LCD_display_centrado(200, BLACK, "Toque la pantalla para jugar.\0");
 	Lcd_Dma_Trans();
 }
 
 void Lcd_pantalla_final(int time){
 	/* clear screen */
 	LcdClrRect(0, 0, 320, 25, WHITE);
-	Lcd_DspAscII6x8(0, 15, BLACK, "Fin de la partida. Pulsar boton para reiniciar.");
+	Lcd_DspAscII6x8(0, 15, BLACK, "Fin de la partida. Pulsar boton para reiniciar.\0");
 	Lcd_print_tiempo_total(time);
-	Lcd_DspAscII6x8(0, 0, BLACK, "T. total partida:");
-	Lcd_DspAscII6x8(154, 0, BLACK, "segundos");
+	Lcd_DspAscII6x8(0, 0, BLACK, "T. total partida:\0");
+	Lcd_DspAscII6x8(154, 0, BLACK, "segundos\0");
 	Lcd_Dma_Trans();
 }
 
@@ -795,7 +795,7 @@ void Lcd_print_candidatos(CELDA celda, int posx, int posy, int incrx, int incry,
 		tamy++;
 	if(zoom)
 	{
-		Lcd_DspAscII6x8(posx + tamx, posy + tamy, BLACK, "Candidatos:");	//Display string
+		Lcd_DspAscII6x8(posx + tamx, posy + tamy, BLACK, "Candidatos:\0");	//Display string
 	}
 	for (i = 0; i < NUM_FILAS; i++) {
 		value = celda & (1 << (i + 4));
@@ -828,12 +828,12 @@ void Lcd_print_candidato_actual(int posx, int posy, int incrx, int incry) {
 
 void Lcd_print_tiempo_total(int num){
 	int auxNum, i;
-	char *value;
+	//char *value;
 
-	LcdClrRect(100, 0,152, 8, WHITE);	//Clear time
+	LcdClrRect(100, 0,149, 8, WHITE);	//Clear time
 
 	auxNum = num;
-	value = "";
+	//value = "";
 	i = 0;
 	while(auxNum > 0){
 		Lcd_DspAscII6x8(140 - i*6, 0, BLACK, get_string_from_integer(auxNum%10 - 1));
@@ -846,15 +846,15 @@ void Lcd_print_tiempo_total(int num){
 void Lcd_print_tiempo_calculo(long num){
 	long auxNum;
 	int i;
-	char *value;
+	//char *value;
 
-	LcdClrRect(240, 0, 290, 8, WHITE);	//Clear time
+	LcdClrRect(240, 0, 295, 8, WHITE);	//Clear time
 
 	auxNum = num;
-	value = "";
+	//value = "";
 	i = 0;
 	while(auxNum > 0){
-		Lcd_DspAscII6x8(300 - i*6, 0, BLACK, get_string_from_integer((int) auxNum%10 - 1));
+		Lcd_DspAscII6x8(264 - i*6, 0, BLACK, get_string_from_integer((int) auxNum%10 - 1));
 		auxNum = auxNum / 10;
 		i++;
 	}
@@ -866,34 +866,34 @@ char* get_string_from_integer(int num) {
 	char* value;
 	switch (num) {
 	case -1:
-		value = "0";
+		value = "0\0";
 		break;
 	case 0:
-		value = "1";
+		value = "1\0";
 		break;
 	case 1:
-		value = "2";
+		value = "2\0";
 		break;
 	case 2:
-		value = "3";
+		value = "3\0";
 		break;
 	case 3:
-		value = "4";
+		value = "4\0";
 		break;
 	case 4:
-		value = "5";
+		value = "5\0";
 		break;
 	case 5:
-		value = "6";
+		value = "6\0";
 		break;
 	case 6:
-		value = "7";
+		value = "7\0";
 		break;
 	case 7:
-		value = "8";
+		value = "8\0";
 		break;
 	case 8:
-		value = "9";
+		value = "9\0";
 		break;
 	}
 	return value;

@@ -43,6 +43,7 @@ int fila;
 int columna;
 int valor;
 int int_count;
+long tiempo_calculo;
 
 #define PLACA ;		//CONDICION
 
@@ -331,8 +332,8 @@ int seleccionar_valor_celda(int button, int modificado)
 	{
 		valor = int_count;
 		timer0_empezar();
-		sudoku_candidatos_modificar(cuadricula, fila - 1, columna - 1 , valor);
-		Lcd_print_tiempo_calculo(timer0_leer());
+		sudoku_candidatos_modificar_c(cuadricula, fila - 1, columna - 1 , valor);
+		tiempo_calculo=timer0_leer();
 		modificado = 1;
 		D8Led_symbol(11);	//Display 0 para test
 		//Llamada a propagar
@@ -355,8 +356,13 @@ void esperar_reset_partida(int button){
 		columna = 0;
 		int_count = 0;
 		status = 0;
+		timer2_empezar();
+		tiempo_calculo = 0;
 		reset_cuadricula();
 		setBotonPulsado(0);
+		sudoku9x9(cuadricula,"A");
+		LcdClrRect(0, 0, 320, 25, WHITE);
+		Lcd_print_info();
 	}
 }
 void reset_cuadricula(void){
@@ -383,12 +389,12 @@ void reset_cuadricula(void){
 void actualizar_lcd()
 {
 	if(estado_zoom == 1){	//Pantalla sudoku (inicio o vueltaZoom)
-		estado_zoom++;
+		//estado_zoom++;
 		Lcd_Test(cuadricula);
 		activar_zoom = 0;
 	}
 	else if(estado_zoom == 2){	//Pantalla zoom
-		estado_zoom --;
+		//estado_zoom --;
 		Lcd_zoom_region(cuadricula, x_elegida, y_elegida);
 		activar_zoom = 0;
 	}
@@ -406,12 +412,16 @@ void automata()
 		if(modificado || activar_zoom){
 			actualizar_lcd();
 			modificado = 0;
+			if(status == 6){
+				Lcd_pantalla_final(tiempo_final);
+			}
 
 		}
 		if(status < 5 && estado_zoom != 0){	//Si no se ha acabado o no se ha empezado
 			Lcd_print_tiempo_total(timer2_leer());
+			Lcd_print_tiempo_calculo(tiempo_calculo);
 		}
-		else{
+		else if(status == 5){
 			tiempo_final = timer2_leer();
 		}
 

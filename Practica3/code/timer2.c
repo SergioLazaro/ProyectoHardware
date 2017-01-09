@@ -61,9 +61,10 @@ void timer2_inicializar(void)
 	//bit 14 -> output inverte on/off
 	//bit 13 -> manual update on/off
 	//bit 12 -> start/stop
-	rTCON = rTCON | 0x2000;
-	/* iniciar timer (bit 0) con auto-reload (bit 3) -> 1001 */
-	rTCON = rTCON | 0x9000;
+	rTCON |= 0x2000;
+	rTCON |= 0x9000;
+	rTCON &= 0xFFFFDFFF;
+
 }
 
 void timer2_empezar()
@@ -71,13 +72,12 @@ void timer2_empezar()
 	timer2_num_int = 0;
 	rTCNTO2 = rTCNTB2;
 	//Volvemos a poner update manual para modificar
-	rTCON = rTCON | 0x2000;
-	//Volvemos al valor que nos interesa
-	rTCON = rTCON & 0x9FFF;
-
-
+	/* iniciar timer (bit 0) con auto-reload (bit 3)*/
+	//rTCON |= 0x2000;
+	//rTCON |= 0x9000;
+	//rTCON &= 0xFFFFDFFF;
 }
 long timer2_leer()
 {
-	return ((timer2_num_int*(rTCNTB2 - rTCMPB2) + (rTCNTB2 - rTCNTO2))) / 32000000;	//microsegundos
+	return ((timer2_num_int*(rTCNTB2 - rTCMPB2) + (rTCNTB2 - rTCNTO2))) / 32000000;	//segundos
 }

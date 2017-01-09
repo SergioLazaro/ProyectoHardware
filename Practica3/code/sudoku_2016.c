@@ -1,5 +1,5 @@
-/*
- * Autores:
+
+/** Autores:
  * Oscar Leon Barbed Perez 666137
  * Sergio Lazaro Magdalena 556030
  *
@@ -46,56 +46,48 @@ int comprobar_celda_error(CELDA celda)
 {
 	return (celda & 0x4000);
 }
-void celda_poner_error(CELDA *celdaptr){
-	*celdaptr |= 0x4000;
-}
-
-void celda_quitar_error(CELDA *celdaptr){
-	*celdaptr &= 0xbfff;
-}
 
 /* *****************************************************************************
  * recorrer fila descartando valor de listas candidatos */
-inline void descartar_candidatos_fila(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
-                             uint8_t fila, uint8_t columna, uint8_t valor)
+inline void descartar_candidatos_fila(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, uint8_t columna, uint8_t valor)
 {
 	int i;
 	//Iteramos sobre NUM_FILAS porque vale 9 pero iteramos sobre las columnas.
 	for(i=0; i<NUM_FILAS; i++){
-		if(celda_leer_valor(cuadricula[fila][i]) == valor){	//Celda repetida
-			celda_poner_error(&cuadricula[fila][i]);	//Poner error celda secundaria
-			celda_poner_error(&cuadricula[fila][coumna]);	//Poner error celda elegida
+		if(celda_leer_valor(cuadricula[fila][i]) == valor && i!=columna){	//Celda repetida
+			cuadricula[fila][i] |= 0x4000;
+			cuadricula[fila][columna] |= 0x4000;
 		}
+		/*
 		else{
-			celda_quitar_error(&cuadricula[fila][i]);	//Quitar error si lo hay
-		}
+			cuadricula[fila][i] &= 0xbfff;
+		}*/
 		cuadricula[fila][i] &= ~(1 << ((valor-1) + 4));
 	}
 }
 
 /* *****************************************************************************
  * recorrer columna descartando valor de listas candidatos */
-inline void descartar_candidatos_columna(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
-		uint8_t fila, uint8_t columna, uint8_t valor)
+inline void descartar_candidatos_columna(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, uint8_t columna, uint8_t valor)
 {
 	int i;
 
 	for(i=0; i<NUM_FILAS; i++){
-		if(celda_leer_valor(cuadricula[i][columna]) == valor){	//Celda repetida
-			celda_poner_error(&cuadricula[i][columna]);	//Poner error celda secundaria
-			celda_poner_error(&cuadricula[fila][coumna]);	//Poner error celda elegida
+		if(celda_leer_valor(cuadricula[i][columna]) == valor && i!=fila){	//Celda repetida
+			cuadricula[i][columna] |= 0x4000;
+			cuadricula[fila][columna] |= 0x4000;
 		}
+		/*
 		else{
-			celda_quitar_error(&cuadricula[i][columna]);
-		}
+			cuadricula[i][columna] &= 0xbfff;
+		}*/
 		cuadricula[i][columna] &= ~(1 << ((valor-1) + 4));
 	}
 }
 
 /* *****************************************************************************
  * recorrer region descartando valor de listas candidatos */
-inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
-                             uint8_t fila, uint8_t columna, uint8_t valor)
+inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, uint8_t columna, uint8_t valor)
 {
 	int i, j, filai, colj;
 	if(fila<3){
@@ -110,7 +102,7 @@ inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS
 	if(columna<3){
 		colj=0;//Columna de inicio de la region
 	}
-	else if(fila<6){
+	else if(columna<6){
 		colj=3;
 	}
 	else{
@@ -119,35 +111,39 @@ inline void descartar_candidatos_region(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS
 
 	for(i=0; i<3; i++){
 		for(j=0; j<3; j++){
-			if(celda_leer_valor(cuadricula[filai + i][colj + j]) == valor){	//Celda repetida
-				celda_poner_error(&cuadricula[filai + i][colj + j]);	//Poner error celda secundaria
-				celda_poner_error(&cuadricula[fila][coumna]);	//Poner error celda elegida
-			}
+			if(celda_leer_valor(cuadricula[filai + i][colj + j]) == valor && (filai+i)!=fila && (colj+j)!=columna){	//Celda repetida
+				cuadricula[filai+i][colj+j] |= 0x4000;
+				cuadricula[fila][columna] |= 0x4000;
+			}/*
 			else{
-				celda_quitar_error(cuadricula[filai+i][colj+j]);
-			}
+				cuadricula[filai+i][colj+j] &= 0xbfff;
+			}*/
 			cuadricula[filai+i][colj+j] &= ~(1 << ((valor-1) + 4));
 		}
 	}
 }
 
-int sudoku_candidatos_modificar(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, 
-	uint8_t columna, uint8_t valor){
+int sudoku_candidatos_modificar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, uint8_t columna, uint8_t valor){
 	//Declaracion variables
-	CELDA celda; 
+	CELDA celda;
 	int celdas_vacias;
 
 	celda = cuadricula[fila][columna];
 	celdas_vacias = 0;
 	if(!comprobar_celda_pista(celda)){	//No es pista
-		celda_poner_valor(&celda[i][j], valor);
-		if(valor >= 0){	//Borrar celda o modificar
+		if(celda_leer_valor(celda) > 0 ){	//Borrar celda o modificar
 			//cuadricula[i][j] = celda & 0xbff0;
 			//Borramos celda -> aumenta num. celdas vacias
-			if(valor == 0) celdas_vacias = 1;	
+			//celda_poner_valor(&celda, valor);
+			cuadricula[fila][columna] &= 0xfff0;
+			cuadricula[fila][columna] |= valor;
 			sudoku_candidatos_init_c(cuadricula);
+			celdas_vacias = 1;
 		}
 		else{	//Celda vacia -> metemos nuevo valor
+			//celda_poner_valor(&celda, valor);
+			cuadricula[fila][columna] &= 0xfff0;
+			cuadricula[fila][columna] |= valor;
 			sudoku_candidatos_propagar_c(cuadricula, fila, columna);
 			celdas_vacias = -1;
 		}
@@ -162,11 +158,10 @@ int sudoku_candidatos_modificar(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8
  * de las celdas en su su fila, columna y región
  * */
 
-int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS],
-                             uint8_t fila, uint8_t columna)
+int sudoku_candidatos_propagar_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], uint8_t fila, uint8_t columna)
 {
 	uint8_t valor;
-	valor = celda_leer_valor(cuadricula[fila][columna]) 
+	valor = celda_leer_valor(cuadricula[fila][columna]);
 	if(valor > 0){
 		/* recorrer fila descartando valor de listas candidatos */
 		descartar_candidatos_fila(cuadricula, fila, columna, valor);
@@ -201,13 +196,14 @@ int sudoku_candidatos_init_c(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS])
 	/* inicializa lista de candidatos */
 	for(i=0; i<NUM_FILAS; i++){
 		for(j=0; j<NUM_FILAS; j++){
-			cuadricula[i][j] = cuadricula[i][j] | 0x1FF0;		//Todos los candidatos a 1
+			cuadricula[i][j] |= 0x1FF0;		//Todos los candidatos a 1
+			cuadricula[i][j] &= 0xBFFF;		//Borrar todos los errores
 		}
 	}
 
 	for(i=0; i<NUM_FILAS; i++){
 		for(j=0; j<NUM_FILAS; j++){
-			celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j); //THUMB
+			celdas_vacias += sudoku_candidatos_propagar_c(cuadricula, i, j);
 		}
 	}
 
@@ -246,6 +242,5 @@ sudoku9x9(CELDA cuadricula[NUM_FILAS][NUM_COLUMNAS], char *ready)
     int celdas_vacias, i, j, k, num_incorrectas;     //numero de celdas aun vacias
     CELDA cuadricula_verificar[NUM_FILAS][NUM_COLUMNAS];
 
-    celdas_vacias = sudoku_candidatos_init_arm(cuadricula);
+    celdas_vacias = sudoku_candidatos_init_c(cuadricula);
 }
-

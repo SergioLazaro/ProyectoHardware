@@ -85,11 +85,7 @@ void TSInt(void)
 		Pt[5] = 240*(Pt[5] - Ymin)/(Ymax - Ymin);
 		//Uart_Printf("  Y-Posion[AIN0] is %04d\n", Pt[5]);
 
-		activar_zoom = 1;
-		if(estado_zoom == 0){
-			estado_zoom = 1;
-			timer2_empezar();
-		}
+
 		//Fix x
 		x_elegida = tmp;
 		if(x_elegida < 0) x_elegida = 0;
@@ -100,6 +96,21 @@ void TSInt(void)
 		if(y_elegida < 0) y_elegida = 0;
 		else if(y_elegida > 240) y_elegida = 240;
       }
+
+	//activar_zoom = 1;
+	if(estado_zoom == 0){
+		estado_zoom = 1;
+		activar_zoom = 1;
+		timer2_empezar();
+	}
+	else if(estado_zoom == 1){	//Pantalla sudoku
+		estado_zoom++;
+		activar_zoom = 1;
+	}
+	else{	//Pantalla zoom
+		estado_zoom--;
+		activar_zoom = 1;
+	}
 
     if(CheckTSP)
  	/*----------- check to ensure Xmax Ymax Xmin Ymin ------------*/

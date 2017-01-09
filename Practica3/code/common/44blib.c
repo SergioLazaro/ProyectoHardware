@@ -29,7 +29,7 @@ void Delay(int time)
 // 100us resolution.//
 {
 	int i,adjust=0;
-	int nothing;
+	volatile int nothing;
 	if(time==0)
 	{
 		time=200;
@@ -44,6 +44,7 @@ void Delay(int time)
 	for(;time>0;time--)
 		for(i=0;i<delayLoopCount;i++){
 			nothing = rPDATG;
+			leds_switch();
 		}
 	if(adjust==1)
 	{
@@ -55,7 +56,8 @@ void Delay(int time)
 
 void DelayMs(int ms_time)
 {
-	int i, nothing;
+	int i;
+	int nothing;
 	nothing = 0;
 	for( i = 0 ; i < 1000*ms_time ; i++ ){
 		nothing = rPDATG;
@@ -65,7 +67,8 @@ void DelayMs(int ms_time)
 
 void DelayTime(int num)
 {
-	int i, nothing;
+	int i;
+	int nothing;
 	nothing = 0;
 	for( i = 0 ; i < num ; i++ ){
 		nothing = rPDATG;
